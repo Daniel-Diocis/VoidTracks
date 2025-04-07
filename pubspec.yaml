@@ -24,15 +24,28 @@ dev_dependencies:
 flutter_icons:
   android: true
   ios: true
-  image_path: "assets/icon/icon.png"
+  image_path: "assets/images/icon.png"
 
 flutter:
   uses-material-design: true
   assets:
+    - assets/images/icon.png
+    - assets/images/cover1.jpg
+    - assets/images/cover2.jpg
+    - assets/images/cover6.jpg
+    - assets/images/cover7.jpg
+    - assets/images/cover8.jpg
+    - assets/images/cover9.jpg
+    - assets/images/cover10.jpg
+    - assets/images/cover11.jpg
     - assets/audio/musica1.mp3
     - assets/audio/musica2.mp3
     - assets/audio/musica3.mp3
     - assets/audio/musica4.mp3
     - assets/audio/musica5.mp3
     - assets/audio/musica6.mp3
+    - assets/audio/musica7.mp3
+    - assets/audio/musica8.mp3
+    - assets/audio/musica9.mp3
+    - assets/audio/musica10.mp3
     - assets/audio/musica11.mp3
