@@ -23,9 +23,13 @@ class MusicPlayer extends StatefulWidget {
 class _MusicPlayerState extends State<MusicPlayer> {
   late AudioPlayer _player;
   final List<Map<String, String>> songs = [
-    {"title": "Musica 1", "asset": "assets/audio/musica1.mp3"},
-    {"title": "Musica 2", "asset": "assets/audio/musica2.mp3"},
-    {"title": "Musica 3", "asset": "assets/audio/musica3.mp3"},
+    {"title": "Joji - YEAH RIGHT", "asset": "assets/audio/musica1.mp3"},
+    {"title": "C.R.O - Antes", "asset": "assets/audio/musica2.mp3"},
+    {"title": "C.R.O - RUINAS", "asset": "assets/audio/musica3.mp3"},
+    {"title": "C.R.O - Ciudad Gris", "asset": "assets/audio/musica4.mp3"},
+    {"title": "C.R.O - COMO SE SIENTE", "asset": "assets/audio/musica5.mp3"},
+    {"title": "Tiago PZK - Mi Corazón", "asset": "assets/audio/musica6.mp3"},
+    {"title": "JPEGMAFIA - either on or off the drugs", "asset": "assets/audio/musica11.mp3"},
   ];
   String? _currentlyPlaying;
 
@@ -70,10 +74,26 @@ class _MusicPlayerState extends State<MusicPlayer> {
               itemCount: songs.length,
               itemBuilder: (context, index) {
                 final song = songs[index];
+                bool isCurrent = _currentlyPlaying == song['asset']!.split('/').last;
                 return ListTile(
                   title: Text(song['title']!),
-                  onTap: () => playSong(song['asset']!, song['asset']!.split('/').last),
-                  trailing: Icon(Icons.play_arrow),
+                  trailing: IconButton(
+                    icon: Icon(
+                      isCurrent && _player.playing ? Icons.pause : Icons.play_arrow,
+                    ),
+                    onPressed: () async {
+                      if (isCurrent) {
+                        if (_player.playing) {
+                          await _player.pause();
+                        } else {
+                          await _player.play();
+                        }
+                        setState(() {}); // aggiorna icona
+                      } else {
+                        await playSong(song['asset']!, song['asset']!.split('/').last);
+                      }
+                    },
+                  ),
                 );
               },
             ),
