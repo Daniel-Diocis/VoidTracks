@@ -52,6 +52,13 @@ class _MusicPlayerState extends State<MusicPlayer> {
     }
   }
 
+  String _formatDuration(Duration d) {
+    String twoDigits(int n) => n.toString().padLeft(2, '0');
+    final minutes = twoDigits(d.inMinutes.remainder(60));
+    final seconds = twoDigits(d.inSeconds.remainder(60));
+    return "$minutes:$seconds";
+  }
+
   @override
   void dispose() {
     _player.dispose();
@@ -67,7 +74,38 @@ class _MusicPlayerState extends State<MusicPlayer> {
           if (_currentlyPlaying != null)
             Padding(
               padding: const EdgeInsets.all(16.0),
-              child: Text("🎧 In riproduzione: $_currentlyPlaying"),
+              child: Column(
+                children: [
+                  Text("🎧 In riproduzione: $_currentlyPlaying"),
+                  StreamBuilder<Duration>(
+                    stream: _player.positionStream,
+                    builder: (context, snapshot) {
+                      final position = snapshot.data ?? Duration.zero;
+                      final duration = _player.duration ?? Duration.zero;
+
+                      return Column(
+                        children: [
+                          Slider(
+                            min: 0,
+                            max: duration.inMilliseconds.toDouble(),
+                            value: position.inMilliseconds.clamp(0, duration.inMilliseconds).toDouble(),
+                            onChanged: (value) {
+                              _player.seek(Duration(milliseconds: value.toInt()));
+                            },
+                          ),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text(_formatDuration(position)),
+                              Text(_formatDuration(duration)),
+                            ],
+                          )
+                        ],
+                      );
+                    },
+                  ),
+                ],
+              ),
             ),
           Expanded(
             child: ListView.builder(
