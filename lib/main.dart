@@ -34,10 +34,13 @@ class _MusicPlayerState extends State<MusicPlayer> {
     {"title": "C.R.O - COMO SE SIENTE", "asset": "assets/audio/musica5.mp3", "cover": "assets/images/cover2.jpg"},
     {"title": "Tiago PZK - Mi Corazón", "asset": "assets/audio/musica6.mp3", "cover": "assets/images/cover6.jpg"},
     {"title": "A\$AP Rocky - L\$D", "asset": "assets/audio/musica7.mp3", "cover": "assets/images/cover7.jpg"},
-    {"title": "Mac Miller - Self Care", "asset": "assets/audio/musica8.mp3", "cover": "assets/images/cover8.jpg"},
-    {"title": "Mac Miller - Good News", "asset": "assets/audio/musica9.mp3", "cover": "assets/images/cover9.jpg"},
-    {"title": "Noah Cyrus, Lil Xan - Live or Die", "asset": "assets/audio/musica10.mp3", "cover": "assets/images/cover10.jpg"},
-    {"title": "JPEGMAFIA - either on or off the drugs", "asset": "assets/audio/musica11.mp3", "cover": "assets/images/cover11.jpg"},
+    {"title": "A\$AP Rocky - Demons", "asset": "assets/audio/musica8.mp3", "cover": "assets/images/cover8.jpg"},
+    {"title": "A\$AP Rocky - Sandman", "asset": "assets/audio/musica9.mp3", "cover": "assets/images/cover8.jpg"},
+    {"title": "A\$AP Rocky - Sundress", "asset": "assets/audio/musica10.mp3", "cover": "assets/images/cover10.jpg"},
+    {"title": "Mac Miller - Self Care", "asset": "assets/audio/musica11.mp3", "cover": "assets/images/cover11.jpg"},
+    {"title": "Mac Miller - Good News", "asset": "assets/audio/musica12.mp3", "cover": "assets/images/cover12.jpg"},
+    {"title": "Noah Cyrus, Lil Xan - Live or Die", "asset": "assets/audio/musica13.mp3", "cover": "assets/images/cover13.jpg"},
+    {"title": "JPEGMAFIA - either on or off the drugs", "asset": "assets/audio/musica14.mp3", "cover": "assets/images/cover14.jpg"},
   ];
 
   String? _currentlyPlaying; // Nome del file in riproduzione (per confronto)

@@ -35,9 +35,11 @@ flutter:
     - assets/images/cover6.jpg
     - assets/images/cover7.jpg
     - assets/images/cover8.jpg
-    - assets/images/cover9.jpg
     - assets/images/cover10.jpg
     - assets/images/cover11.jpg
+    - assets/images/cover12.jpg
+    - assets/images/cover13.jpg
+    - assets/images/cover14.jpg
     - assets/audio/musica1.mp3
     - assets/audio/musica2.mp3
     - assets/audio/musica3.mp3
@@ -49,3 +51,7 @@ flutter:
     - assets/audio/musica9.mp3
     - assets/audio/musica10.mp3
     - assets/audio/musica11.mp3
+    - assets/audio/musica12.mp3
+    - assets/audio/musica13.mp3
+    - assets/audio/musica14.mp3
+    
