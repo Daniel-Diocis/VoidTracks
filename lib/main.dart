@@ -10,6 +10,7 @@ Future<void> main() async {
     androidNotificationChannelId: 'com.tuaapp.channel.audio',
     androidNotificationChannelName: 'Riproduzione audio',
     androidNotificationOngoing: true,
+    androidNotificationIcon: 'drawable/ic_notification',
   );
   runApp(MyApp());
 }
