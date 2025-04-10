@@ -11,7 +11,8 @@ dependencies:
   flutter:
     sdk: flutter
   cupertino_icons: ^1.0.2
-  just_audio: ^0.9.36
+  just_audio: ^0.9.34
+  just_audio_background: ^0.0.1-beta.15
   audio_session: ^0.1.15
   path_provider: ^2.1.1
 
@@ -30,28 +31,5 @@ flutter:
   uses-material-design: true
   assets:
     - assets/images/icon.png
-    - assets/images/cover1.jpg
-    - assets/images/cover2.jpg
-    - assets/images/cover6.jpg
-    - assets/images/cover7.jpg
-    - assets/images/cover8.jpg
-    - assets/images/cover10.jpg
-    - assets/images/cover11.jpg
-    - assets/images/cover12.jpg
-    - assets/images/cover13.jpg
-    - assets/images/cover14.jpg
-    - assets/audio/musica1.mp3
-    - assets/audio/musica2.mp3
-    - assets/audio/musica3.mp3
-    - assets/audio/musica4.mp3
-    - assets/audio/musica5.mp3
-    - assets/audio/musica6.mp3
-    - assets/audio/musica7.mp3
-    - assets/audio/musica8.mp3
-    - assets/audio/musica9.mp3
-    - assets/audio/musica10.mp3
-    - assets/audio/musica11.mp3
-    - assets/audio/musica12.mp3
-    - assets/audio/musica13.mp3
-    - assets/audio/musica14.mp3
-    
+    - assets/images/
+    - assets/audio/
