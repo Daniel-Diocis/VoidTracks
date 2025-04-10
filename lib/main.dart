@@ -96,6 +96,10 @@ class _MusicPlayerState extends State<MusicPlayer> {
             title: songs.firstWhere((s) => s['asset']!.split('/').last == filename)['title']!,
             album: 'VoidTracks',
             artUri: Uri.file(imagePath),
+            extras: {
+              'skipToNext': true,
+              'skipToPrevious': true,
+            },
           ),
         ),
       );
@@ -104,14 +108,15 @@ class _MusicPlayerState extends State<MusicPlayer> {
       // Aspetta che la durata venga caricata correttamente
       await _player.durationStream.firstWhere((d) => d != null);
 
-      await _player.play(); // Riproduci
-
-      // Aggiorna lo stato con nuovo brano e titolo
+      // Aggiorna lo stato PRIMA di avviare la riproduzione
       setState(() {
         _currentlyPlaying = filename;
         _currentlyPlayingTitle = songs
             .firstWhere((s) => s['asset']!.split('/').last == filename)['title'];
       });
+
+      await _player.play(); // Riproduci
+
     } catch (e) {
       print("Errore nel caricamento: $e");
     }
@@ -129,6 +134,26 @@ class _MusicPlayerState extends State<MusicPlayer> {
   void dispose() {
     _player.dispose(); // Rilascia le risorse del player
     super.dispose();
+  }
+
+  @override
+  // Funzione per saltare al brano successivo
+  void skipToNext() async {
+    final currentIndex = songs.indexWhere((s) => s['asset']!.split('/').last == _currentlyPlaying);
+    if (currentIndex < songs.length - 1) {
+      final next = songs[currentIndex + 1];
+      await playSong(next['asset']!, next['asset']!.split('/').last);
+    }
+  }
+
+  @override
+  // Funzione per saltare al brano precedente
+  void skipToPrevious() async {
+    final currentIndex = songs.indexWhere((s) => s['asset']!.split('/').last == _currentlyPlaying);
+    if (currentIndex > 0) {
+      final prev = songs[currentIndex - 1];
+      await playSong(prev['asset']!, prev['asset']!.split('/').last);
+    }
   }
 
   @override
@@ -206,12 +231,40 @@ class _MusicPlayerState extends State<MusicPlayer> {
                               ),
                               // Durata e tempo corrente
                               Row(
-                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                                 children: [
-                                  Text(_formatDuration(position)),
-                                  Text(_formatDuration(duration)),
+                                  IconButton(
+                                    icon: Icon(Icons.skip_previous),
+                                    iconSize: 36,
+                                    onPressed: skipToPrevious,
+                                  ),
+                                  StreamBuilder<PlayerState>(
+                                    stream: _player.playerStateStream,
+                                    builder: (context, snapshot) {
+                                      final playerState = snapshot.data;
+                                      final playing = playerState?.playing ?? false;
+                                      final icon = playing ? Icons.pause_circle_filled : Icons.play_circle_filled;
+
+                                      return IconButton(
+                                        icon: Icon(icon),
+                                        iconSize: 48,
+                                        onPressed: () async {
+                                          if (_player.playing) {
+                                            await _player.pause();
+                                          } else {
+                                            await _player.play();
+                                          }
+                                        },
+                                      );
+                                    },
+                                  ),
+                                  IconButton(
+                                    icon: Icon(Icons.skip_next),
+                                    iconSize: 36,
+                                    onPressed: skipToNext,
+                                  ),
                                 ],
-                              )
+                              ),
                             ],
                           );
                         },
