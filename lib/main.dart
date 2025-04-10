@@ -231,6 +231,14 @@ class _MusicPlayerState extends State<MusicPlayer> {
                               ),
                               // Durata e tempo corrente
                               Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Text(_formatDuration(position)),
+                                  Text(_formatDuration(duration)),
+                                ],
+                              ),
+                              // Icone di controllo: skip_prevoius play/pause, skip_next
+                              Row(
                                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                                 children: [
                                   IconButton(
