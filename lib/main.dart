@@ -2,9 +2,18 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:just_audio/just_audio.dart';
+import 'package:just_audio_background/just_audio_background.dart';
 import 'package:path_provider/path_provider.dart';
 
-void main() => runApp(MyApp());
+Future<void> main() async {
+  await JustAudioBackground.init(
+    androidNotificationChannelId: 'com.tuaapp.channel.audio',
+    androidNotificationChannelName: 'Riproduzione audio',
+    androidNotificationOngoing: true,
+  );
+  runApp(MyApp());
+}
+
 
 // Entrata principale dell'app
 class MyApp extends StatelessWidget {
@@ -56,6 +65,8 @@ class _MusicPlayerState extends State<MusicPlayer> {
   Future<void> playSong(String assetPath, String filename) async {
     try {
       final path = await loadAssetToFile(assetPath, filename);
+      final coverPath = songs.firstWhere((s) => s['asset']!.split('/').last == filename)['cover']!;
+      final coverFile = coverPath.split('/').last;
 
       // Se si sta interagendo col brano già selezionato
       if (_currentlyPlaying == filename) {
@@ -73,9 +84,21 @@ class _MusicPlayerState extends State<MusicPlayer> {
         return;
       }
 
+      final imagePath = await loadAssetToFile(coverPath, coverFile);
       // Se stiamo cambiando brano
       await _player.stop(); // Ferma il precedente
-      await _player.setFilePath(path); // Imposta il nuovo file
+      await _player.setAudioSource( // Dice al lettore audio di caricare un nuovo brano
+        AudioSource.file( // Specifico che la sorgente è un file locale
+          path,
+          tag: MediaItem( // Fornisco le informazioni da mostrare nella notifica
+            id: filename,
+            title: songs.firstWhere((s) => s['asset']!.split('/').last == filename)['title']!,
+            album: 'VoidTracks',
+            artUri: Uri.file(imagePath),
+          ),
+        ),
+      );
+
 
       // Aspetta che la durata venga caricata correttamente
       await _player.durationStream.firstWhere((d) => d != null);
