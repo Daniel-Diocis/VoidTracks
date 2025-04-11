@@ -59,7 +59,18 @@ class _MusicPlayerState extends State<MusicPlayer> {
   @override
   void initState() {
     super.initState();
-    _player = AudioPlayer(); // Inizializzazione del player audio
+    _player = AudioPlayer();
+
+    // Quando la canzone termina naturalmente
+    _player.processingStateStream.listen((state) async {
+      if (state == ProcessingState.completed) {
+        final currentIndex = songs.indexWhere((s) => s['asset']!.split('/').last == _currentlyPlaying);
+
+        final nextIndex = (currentIndex + 1) % songs.length;
+        final next = songs[nextIndex];
+        await playSong(next['asset']!, next['asset']!.split('/').last);
+      }
+    });
   }
 
   // Gestisce la riproduzione o pausa dei brani
@@ -140,20 +151,18 @@ class _MusicPlayerState extends State<MusicPlayer> {
   // Funzione per saltare al brano successivo
   void skipToNext() async {
     final currentIndex = songs.indexWhere((s) => s['asset']!.split('/').last == _currentlyPlaying);
-    if (currentIndex < songs.length - 1) {
-      final next = songs[currentIndex + 1];
-      await playSong(next['asset']!, next['asset']!.split('/').last);
-    }
+    final nextIndex = (currentIndex + 1) % songs.length;
+    final next = songs[nextIndex];
+    await playSong(next['asset']!, next['asset']!.split('/').last);
   }
 
   @override
   // Funzione per saltare al brano precedente
   void skipToPrevious() async {
     final currentIndex = songs.indexWhere((s) => s['asset']!.split('/').last == _currentlyPlaying);
-    if (currentIndex > 0) {
-      final prev = songs[currentIndex - 1];
-      await playSong(prev['asset']!, prev['asset']!.split('/').last);
-    }
+    final prevIndex = (currentIndex - 1) % songs.length;
+    final prev = songs[prevIndex];
+    await playSong(prev['asset']!, prev['asset']!.split('/').last);
   }
 
   @override
