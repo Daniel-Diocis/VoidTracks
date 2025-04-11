@@ -64,11 +64,7 @@ class _MusicPlayerState extends State<MusicPlayer> {
     // Quando la canzone termina naturalmente
     _player.processingStateStream.listen((state) async {
       if (state == ProcessingState.completed) {
-        final currentIndex = songs.indexWhere((s) => s['asset']!.split('/').last == _currentlyPlaying);
-
-        final nextIndex = (currentIndex + 1) % songs.length;
-        final next = songs[nextIndex];
-        await playSong(next['asset']!, next['asset']!.split('/').last);
+        skipToNext(); // Passa alla canzone successiva
       }
     });
   }
