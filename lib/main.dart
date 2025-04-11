@@ -190,12 +190,33 @@ class _MusicPlayerState extends State<MusicPlayer> {
                       // Miniatura copertina brano
                       ClipRRect(
                         borderRadius: BorderRadius.circular(8),
-                        child: Image.asset(
-                          songs.firstWhere((s) => s['asset']!.split('/').last == _currentlyPlaying)['cover']!,
-                          height: 48,
-                          width: 48,
-                          fit: BoxFit.cover,
+                        child: GestureDetector(
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => NowPlayingScreen(
+                                player: _player,
+                                getCurrentSong: () => songs.firstWhere(
+                                  (s) => s['asset']!.split('/').last == _currentlyPlaying,
+                                ),
+                                onNext: skipToNext,
+                                onPrevious: skipToPrevious,
+                              ),
+                            ),
+                          );
+                        },
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(8),
+                            child: Image.asset(
+                              songs.firstWhere((s) => s['asset']!.split('/').last == _currentlyPlaying)['cover']!,
+                              height: 48,
+                              width: 48,
+                              fit: BoxFit.cover,
+                            ),
+                          ),
                         ),
+
                       ),
                       SizedBox(width: 12),
                       // Titolo del brano
@@ -334,6 +355,151 @@ class _MusicPlayerState extends State<MusicPlayer> {
     );
   }
 }
+
+class NowPlayingScreen extends StatefulWidget {
+  final AudioPlayer player;
+  final Map<String, String> Function() getCurrentSong;
+  final VoidCallback onNext;
+  final VoidCallback onPrevious;
+
+  NowPlayingScreen({
+    required this.player,
+    required this.getCurrentSong,
+    required this.onNext,
+    required this.onPrevious,
+  });
+
+  @override
+  _NowPlayingScreenState createState() => _NowPlayingScreenState();
+}
+
+class _NowPlayingScreenState extends State<NowPlayingScreen> {
+  @override
+  void initState() {
+    super.initState();
+
+    // Ascolta lo stato del player per aggiornare la UI quando cambia brano
+    widget.player.playerStateStream.listen((_) {
+      if (mounted) setState(() {}); // forza rebuild della UI
+    });
+  }
+
+  String _formatDuration(Duration d) {
+    String twoDigits(int n) => n.toString().padLeft(2, '0');
+    final minutes = twoDigits(d.inMinutes.remainder(60));
+    final seconds = twoDigits(d.inSeconds.remainder(60));
+    return "$minutes:$seconds";
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final song = widget.getCurrentSong();
+
+    return Scaffold(
+      backgroundColor: Colors.black,
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        leading: BackButton(color: Colors.white),
+      ),
+      body: Center(
+        child: Column(
+          children: [
+            SizedBox(height: 40),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(20),
+              child: Image.asset(
+                song['cover']!,
+                height: 300,
+                width: 300,
+                fit: BoxFit.cover,
+              ),
+            ),
+            SizedBox(height: 30),
+            Text(
+              song['title']!,
+              style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold),
+              textAlign: TextAlign.center,
+            ),
+            StreamBuilder<Duration?>(
+              stream: widget.player.durationStream,
+              builder: (context, snapshot) {
+                final duration = snapshot.data ?? Duration.zero;
+
+                return StreamBuilder<Duration>(
+                  stream: widget.player.positionStream,
+                  builder: (context, snapshot) {
+                    final position = snapshot.data ?? Duration.zero;
+
+                    return Column(
+                      children: [
+                        Slider(
+                          min: 0,
+                          max: duration.inMilliseconds.toDouble(),
+                          value: position.inMilliseconds.clamp(0, duration.inMilliseconds).toDouble(),
+                          onChanged: (value) {
+                            widget.player.seek(Duration(milliseconds: value.toInt()));
+                          },
+                          activeColor: Colors.white,
+                          inactiveColor: Colors.grey,
+                        ),
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 24.0),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text(_formatDuration(position), style: TextStyle(color: Colors.white)),
+                              Text(_formatDuration(duration), style: TextStyle(color: Colors.white)),
+                            ],
+                          ),
+                        ),
+                      ],
+                    );
+                  },
+                );
+              },
+            ),
+            SizedBox(height: 30),
+            StreamBuilder<PlayerState>(
+              stream: widget.player.playerStateStream,
+              builder: (context, snapshot) {
+                final playing = snapshot.data?.playing ?? false;
+
+                return Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    IconButton(
+                      icon: Icon(Icons.skip_previous, color: Colors.white),
+                      iconSize: 40,
+                      onPressed: widget.onPrevious,
+                    ),
+                    IconButton(
+                      icon: Icon(playing ? Icons.pause_circle : Icons.play_circle, color: Colors.white),
+                      iconSize: 60,
+                      onPressed: () {
+                        if (playing) {
+                          widget.player.pause();
+                        } else {
+                          widget.player.play();
+                        }
+                      },
+                    ),
+                    IconButton(
+                      icon: Icon(Icons.skip_next, color: Colors.white),
+                      iconSize: 40,
+                      onPressed: widget.onNext,
+                    ),
+                  ],
+                );
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 
 /// Copia l’asset audio nella memoria temporanea locale per poter essere riprodotto
 Future<String> loadAssetToFile(String assetPath, String filename) async {
