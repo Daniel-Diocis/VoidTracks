@@ -9,6 +9,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'models/track.dart';
 import 'screens/now_playing_screen.dart';
 import 'screens/market_screen.dart';
+import 'screens/now_playing_market.dart';
 
 late Isar isar;
 
@@ -456,9 +457,22 @@ class _MusicPlayerState extends State<MusicPlayer> {
               itemCount: _tracks.length,
               itemBuilder: (context, index) {
                 final track = _tracks[index];
+                final cover = track.cover;
                 final isCurrent = _currentlyPlayingTrack?.path == track.path;
                 return ListTile(
+                  leading: cover != null
+                      ? ClipRRect(
+                          borderRadius: BorderRadius.circular(8),
+                          child: Image.asset(
+                            cover,
+                            height: 48,
+                            width: 48,
+                            fit: BoxFit.cover,
+                          ),
+                        )
+                      : null,
                   title: Text('${track.artist} - ${track.title}'),
+                  subtitle: Text(track.album),
                   trailing: StreamBuilder<PlayerState>(
                     stream: _player.playerStateStream,
                     builder: (context, snapshot) {
