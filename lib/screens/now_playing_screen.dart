@@ -1,16 +1,17 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:just_audio/just_audio.dart';
 import '../models/track.dart';
 
 class NowPlayingScreen extends StatefulWidget {
   final AudioPlayer player;
-  final ValueNotifier<Track?> trackNotifier;
+  final Track track;
   final VoidCallback onNext;
   final VoidCallback onPrevious;
 
   const NowPlayingScreen({
     required this.player,
-    required this.trackNotifier,
+    required this.track,
     required this.onNext,
     required this.onPrevious,
     Key? key,
@@ -24,12 +25,7 @@ class _NowPlayingScreenState extends State<NowPlayingScreen> {
   @override
   void initState() {
     super.initState();
-    // Aggiorna la UI quando cambia il brano
-    widget.trackNotifier.addListener(() {
-      if (mounted) setState(() {});
-    });
 
-    // Aggiorna la UI quando cambia lo stato del player
     widget.player.playerStateStream.listen((_) {
       if (mounted) setState(() {});
     });
@@ -42,13 +38,7 @@ class _NowPlayingScreenState extends State<NowPlayingScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final track = widget.trackNotifier.value;
-    if (track == null) {
-      return Scaffold(
-        backgroundColor: Colors.black,
-        body: Center(child: CircularProgressIndicator(color: Colors.white)),
-      );
-    }
+    final track = widget.track;
 
     return Scaffold(
       backgroundColor: Colors.black,
@@ -63,8 +53,8 @@ class _NowPlayingScreenState extends State<NowPlayingScreen> {
             SizedBox(height: 40),
             ClipRRect(
               borderRadius: BorderRadius.circular(20),
-              child: Image.asset(
-                track.cover ?? '',
+              child: Image.file(
+                File(track.cover_path ?? ''),
                 height: 300,
                 width: 300,
                 fit: BoxFit.cover,
@@ -72,12 +62,12 @@ class _NowPlayingScreenState extends State<NowPlayingScreen> {
             ),
             SizedBox(height: 30),
             Text(
-              track.title,
+              track.titolo,
               style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold),
               textAlign: TextAlign.center,
             ),
             Text(
-              track.artist,
+              track.artista,
               style: TextStyle(color: Colors.white70, fontSize: 16),
               textAlign: TextAlign.center,
             ),

@@ -7,6 +7,9 @@ import 'package:just_audio/just_audio.dart';
 import 'package:audio_session/audio_session.dart';
 import 'package:just_audio_background/just_audio_background.dart';
 import 'now_playing_market.dart';
+import 'package:isar/isar.dart';
+import '../models/track.dart';
+import '../main.dart';
 
 class MarketScreen extends StatefulWidget {
   @override
@@ -50,10 +53,10 @@ class _MarketScreenState extends State<MarketScreen> {
 
       for (var brano in brani) {
         final id = brano['music_path'];
-        final updatedAt = brano['updated_at'];
+        final updated_at = brano['updated_at'];
         final localUpdated = _localTimestamps[id];
 
-        final shouldDownload = localUpdated == null || localUpdated != updatedAt;
+        final shouldDownload = localUpdated == null || localUpdated != updated_at;
 
         final musicFilePath = await _getOrDownloadFile(
           bucket: 'music',
@@ -69,15 +72,17 @@ class _MarketScreenState extends State<MarketScreen> {
         );
 
         if (shouldDownload) {
-          _localTimestamps[id] = updatedAt;
+          _localTimestamps[id] = updated_at;
+          await addOrUpdateTrack(brano, musicFilePath, coverFilePath);
         }
 
         risultati.add({
           'titolo': brano['titolo'],
           'artista': brano['artista'],
           'album': brano['album'],
-          'musicPath': musicFilePath,
-          'coverPath': coverFilePath,
+          'music_path': musicFilePath,
+          'cover_path': coverFilePath,
+          'updated_at': updated_at,
         });
       }
 
@@ -91,6 +96,85 @@ class _MarketScreenState extends State<MarketScreen> {
       print("❌ Errore nel caricamento dei brani: $e");
       setState(() => loading = false);
     }
+  }
+  
+  Future<void> addOrUpdateTrack(Map<String, dynamic> brano, String music_path, String cover_path) async {
+    final track = Track.fromSupabase(brano)
+      ..music_path = music_path
+      ..cover_path = cover_path;
+
+    final existing = await isar.tracks
+        .filter()
+        .music_pathEqualTo(track.music_path)
+        .findFirst();
+
+    if (existing == null || existing.updated_at != track.updated_at) {
+      await isar.writeTxn(() async {
+        await isar.tracks.put(track);
+      });
+      print("✅ Brano salvato o aggiornato: ${track.titolo}");
+    } else {
+      print("⚠️ Brano già aggiornato localmente: ${track.titolo}");
+    }
+  }
+
+  Future<void> _scaricaBrano(Map<String, dynamic> brano) async {
+    print('📦 Inizio download del brano: ${brano['titolo']}');
+
+    final musicPathRemote = brano['music_path'];
+    final coverPathRemote = brano['cover_path'];
+    print('🧩 Contenuto di brano: $brano');
+
+    if (musicPathRemote == null || coverPathRemote == null) {
+      print('🚫 Errore: music_path o cover_path');
+      return;
+    }
+
+    final dir = await getApplicationDocumentsDirectory();
+
+    print('⬇️ Scarico musica da "$musicPathRemote"');
+    final music_path = await _getOrDownloadFile(
+      bucket: 'music',
+      path: musicPathRemote,
+      saveDir: dir.path,
+      forceDownload: true,
+    );
+
+    print('⬇️ Scarico cover da "$coverPathRemote"');
+    final cover_path = await _getOrDownloadFile(
+      bucket: 'cover',
+      path: coverPathRemote,
+      saveDir: dir.path,
+      forceDownload: true,
+    );
+
+    final nuovoTrack = Track()
+      ..titolo = brano['titolo']
+      ..artista = brano['artista']
+      ..album = brano['album']
+      ..music_path = music_path
+      ..cover_path = cover_path
+      ..updated_at = brano['updated_at']
+      ..duration_ms = null;
+
+    await isar.writeTxn(() async {
+      await isar.tracks.put(nuovoTrack);
+    });
+
+    print('✅ Brano scaricato e salvato: ${nuovoTrack.titolo}');
+    print('📁 Path file: $music_path');
+    print('🖼️ Path cover: $cover_path');
+
+    setState(() {
+      braniConFile.add({
+        'titolo': brano['titolo'],
+        'artista': brano['artista'],
+        'album': brano['album'],
+        'music_path': music_path,
+        'cover_path': cover_path,
+        'updated_at': brano['updated_at'],
+      });
+    });
   }
 
   Future<void> _loadLocalTimestamps(Directory dir) async {
@@ -112,24 +196,30 @@ class _MarketScreenState extends State<MarketScreen> {
     required String saveDir,
     required bool forceDownload,
   }) async {
-    final file = File('$saveDir/$path');
+    final filename = path.split('/').last; // ✅ Solo il nome del file
+    final file = File('$saveDir/$filename');
 
     if (!forceDownload && await file.exists()) {
+      print('📂 File già esistente, non scarico: ${file.path}');
       return file.path;
     }
 
-    final response = await client.storage.from(bucket).download(path);
+    print('⬇️ Scaricamento da bucket "$bucket" path "$filename"...');
+
+    final response = await client.storage.from(bucket).download(filename);
     final bytes = response;
 
     await file.create(recursive: true);
     await file.writeAsBytes(bytes);
+
+    print('✅ File scaricato e salvato in: ${file.path}');
     return file.path;
   }
 
   Future<void> _playTrack(Map<String, dynamic> brano) async {
     try {
-      final filename = File(brano['musicPath']).uri.pathSegments.last;
-      final sameTrack = _currentlyPlaying?['musicPath'] == brano['musicPath'];
+      final filename = File(brano['music_path']).uri.pathSegments.last;
+      final sameTrack = _currentlyPlaying?['music_path'] == brano['music_path'];
 
       if (sameTrack) {
         if (_player.playing) {
@@ -145,12 +235,12 @@ class _MarketScreenState extends State<MarketScreen> {
         return;
       }
 
-      final imagePath = brano['coverPath'];
+      final imagePath = brano['cover_path'];
 
       await _player.stop(); // Ferma il precedente
       await _player.setAudioSource(
         AudioSource.file(
-          brano['musicPath'],
+          brano['music_path'],
           tag: MediaItem(
             id: filename,
             title: brano['titolo'],
@@ -178,14 +268,14 @@ class _MarketScreenState extends State<MarketScreen> {
   }
 
   void skipToNext() async {
-    final currentIndex = braniConFile.indexWhere((b) => b['musicPath'] == _currentlyPlaying?['musicPath']);
+    final currentIndex = braniConFile.indexWhere((b) => b['music_path'] == _currentlyPlaying?['music_path']);
     final nextIndex = (currentIndex + 1) % braniConFile.length;
     final next = braniConFile[nextIndex];
     await _playTrack(next);
   }
 
   void skipToPrevious() async {
-    final currentIndex = braniConFile.indexWhere((b) => b['musicPath'] == _currentlyPlaying?['musicPath']);
+    final currentIndex = braniConFile.indexWhere((b) => b['music_path'] == _currentlyPlaying?['music_path']);
     final prevIndex = (currentIndex - 1 + braniConFile.length) % braniConFile.length;
     final prev = braniConFile[prevIndex];
     await _playTrack(prev);
@@ -218,6 +308,19 @@ class _MarketScreenState extends State<MarketScreen> {
             Text("VoidMarket"),
           ],
         ),
+        actions: [
+          IconButton(
+            icon: Icon(Icons.refresh),
+            tooltip: 'Aggiorna brani',
+            onPressed: () async {
+              setState(() => loading = true); // mostra il loader
+              await _loadBraniConFile(); // ricarica i brani
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(content: Text("🔁 Brani aggiornati dal server"), duration: Duration(milliseconds: 800)),
+              );
+            },
+          )
+        ],
       ),
       body: loading
           ? Center(child: CircularProgressIndicator())
@@ -248,7 +351,7 @@ class _MarketScreenState extends State<MarketScreen> {
                                   );
                                 },
                                 child: Image.file(
-                                  File(_currentlyPlaying!['coverPath']),
+                                  File(_currentlyPlaying!['cover_path']),
                                   height: 48,
                                   width: 48,
                                   fit: BoxFit.cover,
@@ -337,25 +440,76 @@ class _MarketScreenState extends State<MarketScreen> {
                     ),
                   ),
                 Expanded(
-                  child: ListView.builder(
-                    itemCount: braniConFile.length,
-                    itemBuilder: (context, index) {
-                      final brano = braniConFile[index];
-                      final isCurrent = _currentlyPlaying?['musicPath'] == brano['musicPath'];
-                      return ListTile(
-                        leading: Image.file(File(brano['coverPath']), width: 50, height: 50, fit: BoxFit.cover),
-                        title: Text('${brano['artista']} - ${brano['titolo']}'),
-                        subtitle: Text(brano['album']),
-                        trailing: StreamBuilder<PlayerState>(
-                          stream: _player.playerStateStream,
-                          builder: (context, snapshot) {
-                            final isPlaying = snapshot.data?.playing ?? false;
-                            return IconButton(
-                              icon: Icon(isCurrent && isPlaying ? Icons.pause : Icons.play_arrow),
-                              onPressed: () => _playTrack(brano),
+                  child: FutureBuilder<List<Track>>(
+                    future: isar.tracks.where().findAll(),
+                    builder: (context, snapshot) {
+                      final downloadedTracks = snapshot.data ?? [];
+
+                      return ListView.builder(
+                        itemCount: braniConFile.length,
+                        itemBuilder: (context, index) {
+                          final brano = braniConFile[index];
+                          final isCurrent = _currentlyPlaying?['music_path'] == brano['music_path'];
+
+                          Track? downloaded;
+                          try {
+                            downloaded = downloadedTracks.firstWhere(
+                              (track) => track.music_path == brano['music_path'],
                             );
-                          },
-                        ),
+                          } catch (_) {
+                            downloaded = null;
+                          }
+
+                          Icon trailingIcon;
+                          VoidCallback? downloadAction;
+
+                          if (downloaded == null) {
+                            trailingIcon = Icon(Icons.download); // Non presente
+                            downloadAction = () async {
+                              await _scaricaBrano(brano);
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(content: Text('✅ Brano scaricato: "${brano['titolo']}"')),
+                              );
+                            };
+                          } else if (downloaded.updated_at != brano['updated_at']) {
+                            trailingIcon = Icon(Icons.system_update); // Aggiornamento disponibile
+                            downloadAction = () async {
+                              await _scaricaBrano(brano);
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(content: Text('🔁 Brano aggiornato: "${brano['titolo']}"')),
+                              );
+                            };
+                          } else {
+                            trailingIcon = Icon(Icons.check_circle, color: Colors.green); // Già aggiornato
+                            downloadAction = null;
+                          }
+
+                          return ListTile(
+                            leading: Image.file(
+                              File(brano['cover_path']),
+                              width: 50,
+                              height: 50,
+                              fit: BoxFit.cover,
+                            ),
+                            title: Text('${brano['artista']} - ${brano['titolo']}'),
+                            subtitle: Text(brano['album']),
+                            trailing: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                IconButton(
+                                  icon: trailingIcon,
+                                  onPressed: downloadAction,
+                                ),
+                                IconButton(
+                                  icon: Icon(
+                                    isCurrent && (_player.playing) ? Icons.pause : Icons.play_arrow,
+                                  ),
+                                  onPressed: () => _playTrack(brano),
+                                ),
+                              ],
+                            ),
+                          );
+                        },
                       );
                     },
                   ),

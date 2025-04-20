@@ -11,7 +11,7 @@ import 'screens/now_playing_screen.dart';
 import 'screens/market_screen.dart';
 import 'screens/now_playing_market.dart';
 
-late Isar isar;
+late final Isar isar;
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -100,107 +100,14 @@ class _MusicPlayerState extends State<MusicPlayer> {
   Track? _currentlyPlayingTrack;
 
   Future<void> _initTracks() async {
-    await isar.writeTxn(() async {
-      await isar.tracks.clear(); // 🔥 Pulisce il database
-    });
-
-    await populateTracksIfEmpty();
-
     final tracks = await isar.tracks.where().findAll();
+    print("📀 Brani trovati nel DB locale: ${tracks.length}");
+    for (final t in tracks) {
+      print("🎵 ${t.titolo} - ${t.music_path} - ${t.cover_path}");
+    }
+
     setState(() {
       _tracks = tracks;
-    });
-  }
-
-  Future<void> populateTracksIfEmpty() async {
-    final List<Track> tracks = [
-      Track()
-        ..title = "YEAH RIGHT"
-        ..artist = "Joji"
-        ..album = "Ballads 1"
-        ..path = "assets/audio/musica1.mp3"
-        ..cover = "assets/images/cover1.jpg",
-      Track()
-        ..title = "Antes"
-        ..artist = "C.R.O"
-        ..album = "Rock"
-        ..path = "assets/audio/musica2.mp3"
-        ..cover = "assets/images/cover2.jpg",
-      Track()
-        ..title = "RUINAS"
-        ..artist = "C.R.O"
-        ..album = "Rock"
-        ..path = "assets/audio/musica3.mp3"
-        ..cover = "assets/images/cover2.jpg",
-      Track()
-        ..title = "Ciudad Gris"
-        ..artist = "C.R.O"
-        ..album = "Rock"
-        ..path = "assets/audio/musica4.mp3"
-        ..cover = "assets/images/cover2.jpg",
-      Track()
-        ..title = "COMO SE SIENTE"
-        ..artist = "C.R.O"
-        ..album = "Rock"
-        ..path = "assets/audio/musica5.mp3"
-        ..cover = "assets/images/cover2.jpg",
-      Track()
-        ..title = "Mi Corazón"
-        ..artist = "Tiago PZK"
-        ..album = "Mi Corazón"
-        ..path = "assets/audio/musica6.mp3"
-        ..cover = "assets/images/cover6.jpg",
-      Track()
-        ..title = "L\$D"
-        ..artist = "A\$AP Rocky"
-        ..album = "AT.LONG.LAST.A\$AP."
-        ..path = "assets/audio/musica7.mp3"
-        ..cover = "assets/images/cover7.jpg",
-      Track()
-        ..title = "Demons"
-        ..artist = "A\$AP Rocky"
-        ..album = "LIVE.LOVE.A\$AP"
-        ..path = "assets/audio/musica8.mp3"
-        ..cover = "assets/images/cover8.jpg",
-      Track()
-        ..title = "Sandman"
-        ..artist = "A\$AP Rocky"
-        ..album = "LIVE.LOVE.A\$AP"
-        ..path = "assets/audio/musica9.mp3"
-        ..cover = "assets/images/cover8.jpg",
-      Track()
-        ..title = "Sundress"
-        ..artist = "A\$AP Rocky"
-        ..album = "Sundress"
-        ..path = "assets/audio/musica10.mp3"
-        ..cover = "assets/images/cover10.jpg",
-      Track()
-        ..title = "Self Care"
-        ..artist = "Mac Miller"
-        ..album = "Swimming"
-        ..path = "assets/audio/musica11.mp3"
-        ..cover = "assets/images/cover11.jpg",
-      Track()
-        ..title = "Good News"
-        ..artist = "Mac Miller"
-        ..album = "Circles"
-        ..path = "assets/audio/musica12.mp3"
-        ..cover = "assets/images/cover12.jpg",
-      Track()
-        ..title = "Live or Die"
-        ..artist = "Noah Cyrus, Lil Xan"
-        ..album = "Live or Die"
-        ..path = "assets/audio/musica13.mp3"
-        ..cover = "assets/images/cover13.jpg",
-      Track()
-        ..title = "either on or off the drugs"
-        ..artist = "JPEGMAFIA"
-        ..album = "I LAY DOWN MY LIFE FOR YOU"
-        ..path = "assets/audio/musica14.mp3"
-        ..cover = "assets/images/cover14.jpg",
-    ];
-    await isar.writeTxn(() async {
-      await isar.tracks.putAll(tracks);
     });
   }
 
@@ -217,15 +124,16 @@ class _MusicPlayerState extends State<MusicPlayer> {
         skipToNext();
       }
     });
+
   }
 
   // Gestisce la riproduzione o pausa dei brani
   Future<void> playTrack(Track track) async {
     try {
-      final path = await loadAssetToFile(track.path, track.path.split('/').last);
-      final imagePath = await loadAssetToFile(track.cover!, track.cover!.split('/').last);
+      final path = track.music_path;
+      final imagePath = track.cover_path;
 
-      if (_currentlyPlayingTrack?.path == track.path) {
+      if (_currentlyPlayingTrack?.music_path == track.music_path) {
         if (_player.playing) {
           await _player.pause();
         } else {
@@ -233,7 +141,7 @@ class _MusicPlayerState extends State<MusicPlayer> {
         }
 
         setState(() {
-          _currentlyPlayingTrack!.title = track.title;
+          _currentlyPlayingTrack!.titolo = track.titolo;
           _currentTrackNotifier.value = track;
         });
 
@@ -245,15 +153,15 @@ class _MusicPlayerState extends State<MusicPlayer> {
           AudioSource.file( // Specifico che la sorgente è un file locale
             path,
             tag: MediaItem( // Fornisco le informazioni da mostrare nella notifica
-              id: track.path,
-              title: ('${track.artist} - ${track.title}'),
+              id: track.music_path,
+              title: ('${track.artista} - ${track.titolo}'),
               album: track.album,
-              artUri: Uri.file(imagePath),
+              artUri: Uri.file(track.cover_path),
               extras: {
-                //'cover': imagePath,
-                'artist': track.artist,
+                'cover': track.cover_path,
+                'artist': track.artista,
                 //'album': track.album,
-                'duration': track.durationMs,
+                'duration': track.duration_ms,
                 'skipToNext': true,
                 'skipToPrevious': true,
               },
@@ -268,7 +176,7 @@ class _MusicPlayerState extends State<MusicPlayer> {
         // Aggiorna lo stato PRIMA di avviare la riproduzione
         setState(() {
           _currentlyPlayingTrack = track;
-          _currentlyPlayingTrack!.title = track.title;
+          _currentlyPlayingTrack!.titolo = track.titolo;
           _currentTrackNotifier.value = track;
         });
 
@@ -324,6 +232,18 @@ class _MusicPlayerState extends State<MusicPlayer> {
             Text("VoidTracks"),
           ],
         ),
+        actions: [
+          IconButton(
+            icon: Icon(Icons.refresh),
+            tooltip: "Aggiorna brani",
+            onPressed: () async {
+              await _initTracks();
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(content: Text("🔁 Brani aggiornati dalla libreria"), duration: Duration(milliseconds: 800)),
+              );
+            },
+          ),
+        ],
       ),
       body: Column(
         children: [
@@ -345,7 +265,7 @@ class _MusicPlayerState extends State<MusicPlayer> {
                               MaterialPageRoute(
                                 builder: (context) => NowPlayingScreen(
                                   player: _player,
-                                  trackNotifier: _currentTrackNotifier,
+                                  track: _currentlyPlayingTrack!,
                                   onNext: skipToNext,
                                   onPrevious: skipToPrevious,
                                 ),
@@ -354,8 +274,8 @@ class _MusicPlayerState extends State<MusicPlayer> {
                           },
                           child:ClipRRect(
                             borderRadius: BorderRadius.circular(8),
-                            child: Image.asset(
-                              _currentlyPlayingTrack!.cover!,
+                            child: Image.file(
+                              File(_currentlyPlayingTrack!.cover_path),
                               height: 48,
                               width: 48,
                               fit: BoxFit.cover,
@@ -367,7 +287,7 @@ class _MusicPlayerState extends State<MusicPlayer> {
                       // Titolo del brano
                       Expanded(
                         child: Text(
-                          '${_currentlyPlayingTrack!.artist} - ${_currentlyPlayingTrack!.title}',
+                          '${_currentlyPlayingTrack!.artista} - ${_currentlyPlayingTrack!.titolo}',
                           style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                           overflow: TextOverflow.ellipsis,
                         ),
@@ -457,21 +377,21 @@ class _MusicPlayerState extends State<MusicPlayer> {
               itemCount: _tracks.length,
               itemBuilder: (context, index) {
                 final track = _tracks[index];
-                final cover = track.cover;
-                final isCurrent = _currentlyPlayingTrack?.path == track.path;
+                final cover = track.cover_path;
+                final isCurrent = _currentlyPlayingTrack?.music_path == track.music_path;
                 return ListTile(
                   leading: cover != null
                       ? ClipRRect(
                           borderRadius: BorderRadius.circular(8),
-                          child: Image.asset(
-                            cover,
+                          child: Image.file(
+                            File(cover),
                             height: 48,
                             width: 48,
                             fit: BoxFit.cover,
                           ),
                         )
                       : null,
-                  title: Text('${track.artist} - ${track.title}'),
+                  title: Text('${track.artista} - ${track.titolo}'),
                   subtitle: Text(track.album),
                   trailing: StreamBuilder<PlayerState>(
                     stream: _player.playerStateStream,
@@ -504,13 +424,4 @@ class _MusicPlayerState extends State<MusicPlayer> {
       ),
     );
   }
-}
-
-/// Copia l’asset audio nella memoria temporanea locale per poter essere riprodotto
-Future<String> loadAssetToFile(String assetPath, String filename) async {
-  final byteData = await rootBundle.load(assetPath);  // Carica bytes dell’asset
-  final dir = await getApplicationDocumentsDirectory(); // Ottieni directory temporanea
-  final file = File('${dir.path}/$filename'); // Crea file con path assoluto
-  await file.writeAsBytes(byteData.buffer.asUint8List(), flush: true);  // Scrivi dati
-  return file.path; // Ritorna il path
 }

@@ -1,7 +1,6 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:just_audio/just_audio.dart';
-import 'market_screen.dart';
 
 class NowPlayingMarket extends StatefulWidget {
   final AudioPlayer player;
@@ -39,13 +38,6 @@ class _NowPlayingMarketState extends State<NowPlayingMarket> {
   @override
   Widget build(BuildContext context) {
     final traccia = widget.brano;
-    if (traccia == null) {
-      return Scaffold(
-        backgroundColor: Colors.black,
-        body: Center(child: CircularProgressIndicator(color: Colors.white)),
-      );
-    }
-
     return Scaffold(
       backgroundColor: Colors.black,
       appBar: AppBar(
@@ -60,7 +52,7 @@ class _NowPlayingMarketState extends State<NowPlayingMarket> {
             ClipRRect(
               borderRadius: BorderRadius.circular(20),
               child: Image.file(
-                File(traccia['coverPath']),
+                File(traccia['cover_path']),
                 height: 300,
                 width: 300,
                 fit: BoxFit.cover,
