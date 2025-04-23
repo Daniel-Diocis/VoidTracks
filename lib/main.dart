@@ -361,7 +361,7 @@ class _MusicPlayerState extends State<MusicPlayer> {
                               MaterialPageRoute(
                                 builder: (context) => NowPlayingScreen(
                                   player: _player,
-                                  track: _currentlyPlayingTrack!,
+                                  currentTrackNotifier: _currentTrackNotifier,
                                   onNext: skipToNext,
                                   onPrevious: skipToPrevious,
                                 ),

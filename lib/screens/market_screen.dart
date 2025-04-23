@@ -20,7 +20,7 @@ class _MarketScreenState extends State<MarketScreen> {
   final client = Supabase.instance.client;
   final AudioPlayer _player = AudioPlayer();
   List<Map<String, dynamic>> braniConFile = [];
-  Map<String, dynamic>? _currentlyPlaying;
+  late ValueNotifier<Map<String, dynamic>?> _currentMarketNotifier;
   bool loading = true;
   bool _showSearchBar = false;
   late TextEditingController _searchController;
@@ -31,6 +31,7 @@ class _MarketScreenState extends State<MarketScreen> {
   void initState() {
     super.initState();
     _setupAudioSession();
+    _currentMarketNotifier = ValueNotifier(null);
     _searchController = TextEditingController();
     _player.processingStateStream.listen((state) async {
       if (state == ProcessingState.completed) {
@@ -251,7 +252,8 @@ class _MarketScreenState extends State<MarketScreen> {
   Future<void> _playTrack(Map<String, dynamic> brano) async {
     try {
       final filename = File(brano['music_path']).uri.pathSegments.last;
-      final sameTrack = _currentlyPlaying?['music_path'] == brano['music_path'];
+      final sameTrack = _currentMarketNotifier.value?['music_path'] == brano['music_path'];
+      _currentMarketNotifier.value = brano;
 
       if (sameTrack) {
         if (_player.playing) {
@@ -259,10 +261,6 @@ class _MarketScreenState extends State<MarketScreen> {
         } else {
           await _player.play(); // Riprendi
         }
-
-        setState(() {
-          _currentlyPlaying = brano;
-        });
 
         return;
       }
@@ -290,7 +288,7 @@ class _MarketScreenState extends State<MarketScreen> {
       await _player.durationStream.firstWhere((d) => d != null);
 
       setState(() {
-        _currentlyPlaying = brano;
+        _currentMarketNotifier.value = brano;
       });
 
       await _player.play();
@@ -300,14 +298,14 @@ class _MarketScreenState extends State<MarketScreen> {
   }
 
   void skipToNext() async {
-    final currentIndex = braniConFile.indexWhere((b) => b['music_path'] == _currentlyPlaying?['music_path']);
+    final currentIndex = braniConFile.indexWhere((b) => b['music_path'] == _currentMarketNotifier.value?['music_path']);
     final nextIndex = (currentIndex + 1) % braniConFile.length;
     final next = braniConFile[nextIndex];
     await _playTrack(next);
   }
 
   void skipToPrevious() async {
-    final currentIndex = braniConFile.indexWhere((b) => b['music_path'] == _currentlyPlaying?['music_path']);
+    final currentIndex = braniConFile.indexWhere((b) => b['music_path'] == _currentMarketNotifier.value?['music_path']);
     final prevIndex = (currentIndex - 1 + braniConFile.length) % braniConFile.length;
     final prev = braniConFile[prevIndex];
     await _playTrack(prev);
@@ -323,6 +321,7 @@ class _MarketScreenState extends State<MarketScreen> {
   void dispose() {
     _searchController.dispose();
     _player.dispose();
+    _currentMarketNotifier.dispose();
     super.dispose();
   }
 
@@ -400,7 +399,7 @@ class _MarketScreenState extends State<MarketScreen> {
                 ),
 
               // 🎵 Brano attualmente in riproduzione (se esiste)
-              if (_currentlyPlaying != null)
+              if (_currentMarketNotifier.value != null)
                 Padding(
                   padding: const EdgeInsets.all(16.0),
                   child: Column(
@@ -416,7 +415,7 @@ class _MarketScreenState extends State<MarketScreen> {
                                   MaterialPageRoute(
                                     builder: (context) => NowPlayingMarket(
                                       player: _player,
-                                      brano: _currentlyPlaying!,
+                                      currentTrackNotifier: _currentMarketNotifier,
                                       onNext: skipToNext,
                                       onPrevious: skipToPrevious,
                                     ),
@@ -424,7 +423,7 @@ class _MarketScreenState extends State<MarketScreen> {
                                 );
                               },
                               child: Image.file(
-                                File(_currentlyPlaying!['cover_path']),
+                                File(_currentMarketNotifier.value!['cover_path']),
                                 height: 48,
                                 width: 48,
                                 fit: BoxFit.cover,
@@ -434,7 +433,7 @@ class _MarketScreenState extends State<MarketScreen> {
                           SizedBox(width: 12),
                           Expanded(
                             child: Text(
-                              '${_currentlyPlaying!['artista']} - ${_currentlyPlaying!['titolo']}',
+                              '${_currentMarketNotifier.value!['artista']} - ${_currentMarketNotifier.value!['titolo']}',
                               style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                               overflow: TextOverflow.ellipsis,
                             ),
@@ -516,7 +515,7 @@ class _MarketScreenState extends State<MarketScreen> {
                   itemCount: braniConFile.length,
                   itemBuilder: (context, index) {
                     final brano = braniConFile[index];
-                    final isCurrent = _currentlyPlaying?['music_path'] == brano['music_path'];
+                    final isCurrent = _currentMarketNotifier.value?['music_path'] == brano['music_path'];
 
                     Icon trailingIcon;
                     VoidCallback? downloadAction;
