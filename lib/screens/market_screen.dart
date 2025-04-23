@@ -22,12 +22,16 @@ class _MarketScreenState extends State<MarketScreen> {
   List<Map<String, dynamic>> braniConFile = [];
   Map<String, dynamic>? _currentlyPlaying;
   bool loading = true;
+  bool _showSearchBar = false;
+  late TextEditingController _searchController;
+  String _searchQuery = '';
   Map<String, String> _localTimestamps = {};
 
   @override
   void initState() {
     super.initState();
     _setupAudioSession();
+    _searchController = TextEditingController();
     _player.processingStateStream.listen((state) async {
       if (state == ProcessingState.completed) {
         skipToNext();
@@ -180,15 +184,28 @@ class _MarketScreenState extends State<MarketScreen> {
     print('📁 Path file: $music_path');
     print('🖼️ Path cover: $cover_path');
 
+    // 🧠 Aggiorna il timestamp locale
+    _localTimestamps[brano['music_path']] = brano['updated_at'];
+    await _saveLocalTimestamps(dir);
+
+    // ✅ Aggiorna la lista a schermo
     setState(() {
-      braniConFile.add({
+      final index = braniConFile.indexWhere((b) => b['music_path'] == music_path);
+
+      final nuovoBrano = {
         'titolo': brano['titolo'],
         'artista': brano['artista'],
         'album': brano['album'],
         'music_path': music_path,
         'cover_path': cover_path,
         'updated_at': brano['updated_at'],
-      });
+      };
+
+      if (index != -1) {
+        braniConFile[index] = nuovoBrano; // 🔄 Sostituisce mantenendo la posizione
+      } else {
+        braniConFile.add(nuovoBrano); // ➕ Solo se nuovo
+      }
     });
   }
 
@@ -304,6 +321,7 @@ class _MarketScreenState extends State<MarketScreen> {
 
   @override
   void dispose() {
+    _searchController.dispose();
     _player.dispose();
     super.dispose();
   }
@@ -325,212 +343,247 @@ class _MarketScreenState extends State<MarketScreen> {
         ),
         actions: [
           IconButton(
+            icon: Icon(Icons.search),
+            tooltip: 'Cerca',
+            onPressed: () {
+              setState(() {
+                _showSearchBar = !_showSearchBar;
+                _searchQuery = ''; // resetto query se nascondo barra
+              });
+            },
+          ),
+          IconButton(
             icon: Icon(Icons.refresh),
             tooltip: 'Aggiorna brani',
             onPressed: () async {
-              setState(() => loading = true); // mostra il loader
-              await _loadBraniConFile(); // ricarica i brani
+              setState(() => loading = true);
+              await _loadBraniConFile();
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(content: Text("🔁 Brani aggiornati dal server"), duration: Duration(milliseconds: 800)),
               );
             },
-          )
+          ),
         ],
       ),
       body: loading
-          ? Center(child: CircularProgressIndicator())
-          : Column(
-              children: [
-                if (_currentlyPlaying != null)
-                  Padding(
-                    padding: const EdgeInsets.all(16.0),
-                    child: Column(
-                      children: [
-                        Row(
-                          children: [
-                            // Copertina cliccabile
-                            ClipRRect(
-                              borderRadius: BorderRadius.circular(8),
-                              child: GestureDetector(
-                                onTap: () {
-                                  Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (context) => NowPlayingMarket(
-                                        player: _player,
-                                        brano: _currentlyPlaying!, // Passa il Map<String, dynamic>
-                                        onNext: skipToNext,
-                                        onPrevious: skipToPrevious,
-                                      ),
-                                    ),
-                                  );
-                                },
-                                child: Image.file(
-                                  File(_currentlyPlaying!['cover_path']),
-                                  height: 48,
-                                  width: 48,
-                                  fit: BoxFit.cover,
-                                ),
-                              ),
-                            ),
-                            SizedBox(width: 12),
-                            Expanded(
-                              child: Text(
-                                '${_currentlyPlaying!['artista']} - ${_currentlyPlaying!['titolo']}',
-                                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ),
-                          ],
-                        ),
-                        SizedBox(height: 8),
-
-                        // Seekbar + Timer
-                        StreamBuilder<Duration?>(
-                          stream: _player.durationStream,
-                          builder: (context, snapshot) {
-                            final duration = snapshot.data ?? Duration.zero;
-                            return StreamBuilder<Duration>(
-                              stream: _player.positionStream,
-                              builder: (context, snapshot) {
-                                final position = snapshot.data ?? Duration.zero;
-                                return Column(
-                                  children: [
-                                    Slider(
-                                      min: 0,
-                                      max: duration.inMilliseconds.toDouble(),
-                                      value: position.inMilliseconds.clamp(0, duration.inMilliseconds).toDouble(),
-                                      onChanged: (value) {
-                                        _player.seek(Duration(milliseconds: value.toInt()));
-                                      },
-                                    ),
-                                    Row(
-                                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                      children: [
-                                        Text(_formatDuration(position)),
-                                        Text(_formatDuration(duration)),
-                                      ],
-                                    ),
-                                    Row(
-                                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                                      children: [
-                                        IconButton(
-                                          icon: Icon(Icons.skip_previous),
-                                          iconSize: 36,
-                                          onPressed: skipToPrevious,
-                                        ),
-                                        StreamBuilder<PlayerState>(
-                                          stream: _player.playerStateStream,
-                                          builder: (context, snapshot) {
-                                            final playing = snapshot.data?.playing ?? false;
-                                            final icon = playing ? Icons.pause_circle_filled : Icons.play_circle_filled;
-
-                                            return IconButton(
-                                              icon: Icon(icon),
-                                              iconSize: 48,
-                                              onPressed: () async {
-                                                if (_player.playing) {
-                                                  await _player.pause();
-                                                } else {
-                                                  await _player.play();
-                                                }
-                                              },
-                                            );
-                                          },
-                                        ),
-                                        IconButton(
-                                          icon: Icon(Icons.skip_next),
-                                          iconSize: 36,
-                                          onPressed: skipToNext,
-                                        ),
-                                      ],
-                                    ),
-                                  ],
-                                );
+        ? Center(child: CircularProgressIndicator())
+        : Column(
+            children: [
+              // 🔍 Searchbar sempre visibile quando attiva
+              if (_showSearchBar)
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  child: TextField(
+                    controller: _searchController,
+                    onChanged: (value) {
+                      setState(() {
+                        _searchQuery = value;
+                      });
+                    },
+                    decoration: InputDecoration(
+                      hintText: 'Cerca per titolo, artista o album',
+                      border: OutlineInputBorder(),
+                      prefixIcon: Icon(Icons.search),
+                      suffixIcon: _searchQuery.isNotEmpty
+                          ? IconButton(
+                              icon: Icon(Icons.clear),
+                              onPressed: () {
+                                _searchController.clear();
+                                setState(() {
+                                  _searchQuery = '';
+                                });
                               },
-                            );
-                          },
-                        ),
-                      ],
+                            )
+                          : null,
                     ),
                   ),
-                Expanded(
-                  child: FutureBuilder<List<Track>>(
-                    future: isar.tracks.where().findAll(),
-                    builder: (context, snapshot) {
-                      final downloadedTracks = snapshot.data ?? [];
+                ),
 
-                      return ListView.builder(
-                        itemCount: braniConFile.length,
-                        itemBuilder: (context, index) {
-                          final brano = braniConFile[index];
-                          final isCurrent = _currentlyPlaying?['music_path'] == brano['music_path'];
-
-                          Track? downloaded;
-                          try {
-                            downloaded = downloadedTracks.firstWhere(
-                              (track) => track.music_path == brano['music_path'],
-                            );
-                          } catch (_) {
-                            downloaded = null;
-                          }
-
-                          Icon trailingIcon;
-                          VoidCallback? downloadAction;
-
-                          if (downloaded == null) {
-                            trailingIcon = Icon(Icons.download); // Non presente
-                            downloadAction = () async {
-                              await _scaricaBrano(brano);
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(content: Text('✅ Brano scaricato: "${brano['titolo']}"')),
-                              );
-                            };
-                          } else if (downloaded.updated_at != brano['updated_at']) {
-                            trailingIcon = Icon(Icons.system_update); // Aggiornamento disponibile
-                            downloadAction = () async {
-                              await _scaricaBrano(brano);
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(content: Text('🔁 Brano aggiornato: "${brano['titolo']}"')),
-                              );
-                            };
-                          } else {
-                            trailingIcon = Icon(Icons.check_circle, color: Colors.green); // Già aggiornato
-                            downloadAction = null;
-                          }
-
-                          return ListTile(
-                            leading: Image.file(
-                              File(brano['cover_path']),
-                              width: 50,
-                              height: 50,
-                              fit: BoxFit.cover,
-                            ),
-                            title: Text('${brano['artista']} - ${brano['titolo']}'),
-                            subtitle: Text(brano['album']),
-                            trailing: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                IconButton(
-                                  icon: trailingIcon,
-                                  onPressed: downloadAction,
-                                ),
-                                IconButton(
-                                  icon: Icon(
-                                    isCurrent && (_player.playing) ? Icons.pause : Icons.play_arrow,
+              // 🎵 Brano attualmente in riproduzione (se esiste)
+              if (_currentlyPlaying != null)
+                Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Column(
+                    children: [
+                      Row(
+                        children: [
+                          ClipRRect(
+                            borderRadius: BorderRadius.circular(8),
+                            child: GestureDetector(
+                              onTap: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) => NowPlayingMarket(
+                                      player: _player,
+                                      brano: _currentlyPlaying!,
+                                      onNext: skipToNext,
+                                      onPrevious: skipToPrevious,
+                                    ),
                                   ),
-                                  onPressed: () => _playTrack(brano),
-                                ),
-                              ],
+                                );
+                              },
+                              child: Image.file(
+                                File(_currentlyPlaying!['cover_path']),
+                                height: 48,
+                                width: 48,
+                                fit: BoxFit.cover,
+                              ),
                             ),
+                          ),
+                          SizedBox(width: 12),
+                          Expanded(
+                            child: Text(
+                              '${_currentlyPlaying!['artista']} - ${_currentlyPlaying!['titolo']}',
+                              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ],
+                      ),
+                      SizedBox(height: 8),
+                      StreamBuilder<Duration?>(
+                        stream: _player.durationStream,
+                        builder: (context, snapshot) {
+                          final duration = snapshot.data ?? Duration.zero;
+                          return StreamBuilder<Duration>(
+                            stream: _player.positionStream,
+                            builder: (context, snapshot) {
+                              final position = snapshot.data ?? Duration.zero;
+                              return Column(
+                                children: [
+                                  Slider(
+                                    min: 0,
+                                    max: duration.inMilliseconds.toDouble(),
+                                    value: position.inMilliseconds.clamp(0, duration.inMilliseconds).toDouble(),
+                                    onChanged: (value) {
+                                      _player.seek(Duration(milliseconds: value.toInt()));
+                                    },
+                                  ),
+                                  Row(
+                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                    children: [
+                                      Text(_formatDuration(position)),
+                                      Text(_formatDuration(duration)),
+                                    ],
+                                  ),
+                                  Row(
+                                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                                    children: [
+                                      IconButton(
+                                        icon: Icon(Icons.skip_previous),
+                                        iconSize: 36,
+                                        onPressed: skipToPrevious,
+                                      ),
+                                      StreamBuilder<PlayerState>(
+                                        stream: _player.playerStateStream,
+                                        builder: (context, snapshot) {
+                                          final playing = snapshot.data?.playing ?? false;
+                                          final icon = playing ? Icons.pause_circle_filled : Icons.play_circle_filled;
+                                          return IconButton(
+                                            icon: Icon(icon),
+                                            iconSize: 48,
+                                            onPressed: () async {
+                                              if (_player.playing) {
+                                                await _player.pause();
+                                              } else {
+                                                await _player.play();
+                                              }
+                                            },
+                                          );
+                                        },
+                                      ),
+                                      IconButton(
+                                        icon: Icon(Icons.skip_next),
+                                        iconSize: 36,
+                                        onPressed: skipToNext,
+                                      ),
+                                    ],
+                                  ),
+                                ],
+                              );
+                            },
                           );
                         },
-                      );
-                    },
+                      ),
+                    ],
                   ),
                 ),
-              ],
-            ),
+
+              // 🎧 Lista dei brani
+              Expanded(
+                child: ListView.builder(
+                  itemCount: braniConFile.length,
+                  itemBuilder: (context, index) {
+                    final brano = braniConFile[index];
+                    final isCurrent = _currentlyPlaying?['music_path'] == brano['music_path'];
+
+                    Icon trailingIcon;
+                    VoidCallback? downloadAction;
+
+                    return FutureBuilder<Track?>(
+                      future: isar.tracks
+                          .filter()
+                          .music_pathEqualTo(brano['music_path'])
+                          .findFirst(),
+                      builder: (context, snapshot) {
+                        final downloaded = snapshot.data;
+                        final isScaricato = downloaded != null;
+                        final aggiornato = downloaded?.updated_at == brano['updated_at'];
+
+                        if (!isScaricato) {
+                          trailingIcon = Icon(Icons.download);
+                          downloadAction = () async {
+                            await _scaricaBrano(brano);
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(content: Text('✅ Brano scaricato: "${brano['titolo']}"')),
+                            );
+                          };
+                        } else if (!aggiornato) {
+                          trailingIcon = Icon(Icons.system_update);
+                          downloadAction = () async {
+                            await _scaricaBrano(brano);
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(content: Text('🔁 Brano aggiornato: "${brano['titolo']}"')),
+                            );
+                          };
+                        } else {
+                          trailingIcon = Icon(Icons.check_circle, color: Colors.green);
+                          downloadAction = null;
+                        }
+
+                        return ListTile(
+                          leading: Image.file(
+                            File(brano['cover_path']),
+                            width: 50,
+                            height: 50,
+                            fit: BoxFit.cover,
+                          ),
+                          title: Text('${brano['artista']} - ${brano['titolo']}'),
+                          subtitle: Text(brano['album']),
+                          trailing: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              IconButton(
+                                icon: trailingIcon,
+                                onPressed: downloadAction,
+                              ),
+                              IconButton(
+                                icon: Icon(
+                                  isCurrent && (_player.playing) ? Icons.pause : Icons.play_arrow,
+                                ),
+                                onPressed: () => _playTrack(brano),
+                              ),
+                            ],
+                          ),
+                        );
+                      },
+                    );
+                  },
+                ),
+              ),
+            ],
+          ),
     );
   }
 }

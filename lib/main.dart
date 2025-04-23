@@ -95,6 +95,9 @@ class MusicPlayer extends StatefulWidget {
 
 class _MusicPlayerState extends State<MusicPlayer> {
   late AudioPlayer _player;
+  late TextEditingController _searchController;
+  bool _showSearchBar = false;
+  String _searchQuery = '';
   late ValueNotifier<Track?> _currentTrackNotifier;
   List<Track> _tracks = [];
   Track? _currentlyPlayingTrack;
@@ -114,6 +117,7 @@ class _MusicPlayerState extends State<MusicPlayer> {
   @override
   void initState() {
     super.initState();
+    _searchController = TextEditingController();
     _player = AudioPlayer();
     _currentTrackNotifier = ValueNotifier(null);
     _initTracks();
@@ -240,6 +244,7 @@ class _MusicPlayerState extends State<MusicPlayer> {
 
   @override
   void dispose() {
+    _searchController.dispose();
     _player.dispose();  // Rilascia le risorse del player
     super.dispose();
   }
@@ -263,6 +268,14 @@ class _MusicPlayerState extends State<MusicPlayer> {
 
   @override
   Widget build(BuildContext context) {
+    final query = _searchQuery.toLowerCase();
+
+    final risultatiFiltrati = _tracks.where((track) {
+            final query = _searchQuery.toLowerCase();
+            return track.titolo.toLowerCase().contains(query) ||
+                  track.artista.toLowerCase().contains(query) ||
+                  track.album.toLowerCase().contains(query);
+          }).toList();
     return Scaffold(
       appBar: AppBar(
         title: Row(
@@ -278,6 +291,17 @@ class _MusicPlayerState extends State<MusicPlayer> {
         ),
         actions: [
           IconButton(
+            icon: Icon(Icons.search),
+            tooltip: 'Cerca',
+            onPressed: () {
+              setState(() {
+                _showSearchBar = !_showSearchBar;
+                _searchQuery = '';
+                _searchController.clear();
+              });
+            },
+          ),
+          IconButton(
             icon: Icon(Icons.refresh),
             tooltip: "Aggiorna brani",
             onPressed: () async {
@@ -291,6 +315,34 @@ class _MusicPlayerState extends State<MusicPlayer> {
       ),
       body: Column(
         children: [
+          if (_showSearchBar)
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              child: TextField(
+                controller: _searchController,
+                onChanged: (value) {
+                  setState(() {
+                    _searchQuery = value;
+                  });
+                },
+                decoration: InputDecoration(
+                  hintText: 'Cerca per titolo, artista o album',
+                  border: OutlineInputBorder(),
+                  prefixIcon: Icon(Icons.search),
+                  suffixIcon: _searchQuery.isNotEmpty
+                      ? IconButton(
+                          icon: Icon(Icons.clear),
+                          onPressed: () {
+                            _searchController.clear();
+                            setState(() {
+                              _searchQuery = '';
+                            });
+                          },
+                        )
+                      : null,
+                ),
+              ),
+            ),
           if (_currentlyPlayingTrack != null)
             Padding(
               padding: const EdgeInsets.all(16.0),
@@ -417,30 +469,32 @@ class _MusicPlayerState extends State<MusicPlayer> {
               ),
             ),
           Expanded(
-            child: ListView.builder(
-              itemCount: _tracks.length,
-              itemBuilder: (context, index) {
-                final track = _tracks[index];
-                final cover = track.cover_path;
-                final isCurrent = _currentlyPlayingTrack?.music_path == track.music_path;
-                return DismissibleTrackTile(
-                  track: track,
-                  index: index,
-                  isCurrent: isCurrent && (_player.playing),
-                  onDelete: (path) async {
-                    await eliminaBranoDaIsar(path);
-                    setState(() {
-                      _tracks.removeAt(index);
-                    });
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text('🗑️ Brano eliminato')),
-                    );
-                  },
-                  onPlay: () => playTrack(track),
-                );
-              },
-            ),
-          ),
+            child: risultatiFiltrati.isEmpty
+                ? Center(child: Text('🔍 Nessun risultato trovato'))
+                : ListView.builder(
+                    itemCount: risultatiFiltrati.length,
+                    itemBuilder: (context, index) {
+                      final track = risultatiFiltrati[index];
+                      final isCurrent = _currentlyPlayingTrack?.music_path == track.music_path;
+
+                      return DismissibleTrackTile(
+                        track: track,
+                        index: index,
+                        isCurrent: isCurrent && (_player.playing),
+                        onDelete: (path) async {
+                          await eliminaBranoDaIsar(path);
+                          setState(() {
+                            _tracks.removeWhere((t) => t.music_path == path);
+                          });
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(content: Text('🗑️ Brano eliminato')),
+                          );
+                        },
+                        onPlay: () => playTrack(track),
+                      );
+                    },
+                  ),
+          )
         ],
       ),
     );
