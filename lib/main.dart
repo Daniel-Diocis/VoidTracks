@@ -186,6 +186,50 @@ class _MusicPlayerState extends State<MusicPlayer> {
     }
   }
 
+  Future<void> eliminaBranoDaIsar(String musicPath) async {
+    final brano = await isar.tracks.filter().music_pathEqualTo(musicPath).findFirst();
+
+    if (brano != null) {
+      final coverPath = brano.cover_path;
+
+      // 🔍 Recupera tutti i brani con la stessa cover
+      final altriBraniConStessaCover = await isar.tracks
+          .filter()
+          .cover_pathEqualTo(coverPath)
+          .findAll();
+
+      // Escludi il brano stesso (confronto sul music_path)
+      final altriEffettivi = altriBraniConStessaCover.where((b) => b.music_path != musicPath).toList();
+
+      // 🗑️ Elimina il file della musica
+      final fileMusica = File(brano.music_path);
+      if (await fileMusica.exists()) {
+        await fileMusica.delete();
+        print('🗑️ File musica eliminato: ${fileMusica.path}');
+      }
+
+      // 🗑️ Elimina la cover solo se non è usata da altri
+      if (altriEffettivi.isEmpty) {
+        final fileCover = File(coverPath);
+        if (await fileCover.exists()) {
+          await fileCover.delete();
+          print('🗑️ Cover eliminata: ${fileCover.path}');
+        }
+      } else {
+        print('✅ Cover mantenuta perché usata da altre canzoni.');
+      }
+
+      // 🔄 Elimina il record da Isar
+      await isar.writeTxn(() async {
+        await isar.tracks.delete(brano.id);
+      });
+
+      print('✅ Brano eliminato da Isar: ${brano.titolo}');
+    } else {
+      print('⚠️ Nessun brano trovato con path: $musicPath');
+    }
+  }
+
   // Formatta durata in mm:ss
   String _formatDuration(Duration d) {
     String twoDigits(int n) => n.toString().padLeft(2, '0');
@@ -379,48 +423,106 @@ class _MusicPlayerState extends State<MusicPlayer> {
                 final track = _tracks[index];
                 final cover = track.cover_path;
                 final isCurrent = _currentlyPlayingTrack?.music_path == track.music_path;
-                return ListTile(
-                  leading: cover != null
-                      ? ClipRRect(
-                          borderRadius: BorderRadius.circular(8),
-                          child: Image.file(
-                            File(cover),
-                            height: 48,
-                            width: 48,
-                            fit: BoxFit.cover,
-                          ),
-                        )
-                      : null,
-                  title: Text('${track.artista} - ${track.titolo}'),
-                  subtitle: Text(track.album),
-                  trailing: StreamBuilder<PlayerState>(
-                    stream: _player.playerStateStream,
-                    builder: (context, snapshot) {
-                      final playing = snapshot.data?.playing ?? false;
-
-                      // Icona dinamica in base allo stato e al brano selezionato
-                      final icon = isCurrent && playing ? Icons.pause : Icons.play_arrow;
-                      return IconButton(
-                        icon: Icon(icon),
-                        onPressed: () async {
-                          if (isCurrent) {
-                            if (playing) {
-                              await _player.pause();
-                            } else {
-                              await _player.play();
-                            }
-                          } else {
-                            await playTrack(track);
-                          }
-                        },
-                      );
-                    },
-                  ),
+                return DismissibleTrackTile(
+                  track: track,
+                  index: index,
+                  isCurrent: isCurrent && (_player.playing),
+                  onDelete: (path) async {
+                    await eliminaBranoDaIsar(path);
+                    setState(() {
+                      _tracks.removeAt(index);
+                    });
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('🗑️ Brano eliminato')),
+                    );
+                  },
+                  onPlay: () => playTrack(track),
                 );
               },
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class DismissibleTrackTile extends StatefulWidget {
+  final Track track;
+  final int index;
+  final bool isCurrent;
+  final Function(String) onDelete;
+  final Function() onPlay;
+
+  const DismissibleTrackTile({
+    required this.track,
+    required this.index,
+    required this.isCurrent,
+    required this.onDelete,
+    required this.onPlay,
+    Key? key,
+  }) : super(key: key);
+
+  @override
+  State<DismissibleTrackTile> createState() => _DismissibleTrackTileState();
+}
+
+class _DismissibleTrackTileState extends State<DismissibleTrackTile> {
+  double _dragExtent = 0.0;
+
+  @override
+  Widget build(BuildContext context) {
+    return Listener(
+      onPointerMove: (event) {
+        setState(() {
+          _dragExtent += event.delta.dx;
+        });
+      },
+      onPointerUp: (_) => setState(() => _dragExtent = 0),
+      child: Dismissible(
+        key: ValueKey(widget.track.music_path),
+        direction: DismissDirection.startToEnd,
+        background: Container(
+          color: Colors.red.withOpacity((_dragExtent / 100).clamp(0, 1)),
+          alignment: Alignment.centerLeft,
+          padding: EdgeInsets.symmetric(horizontal: 20),
+          child: Icon(Icons.delete, color: Colors.white),
+        ),
+        confirmDismiss: (direction) async {
+          return await showDialog(
+            context: context,
+            builder: (ctx) => AlertDialog(
+              title: Text('Conferma eliminazione'),
+              content: Text('Vuoi eliminare il brano "${widget.track.titolo}"?'),
+              actions: [
+                TextButton(onPressed: () => Navigator.of(ctx).pop(false), child: Text('Annulla')),
+                TextButton(onPressed: () => Navigator.of(ctx).pop(true), child: Text('Elimina')),
+              ],
+            ),
+          );
+        },
+        onDismissed: (direction) async {
+          await widget.onDelete(widget.track.music_path);
+        },
+        child: Opacity(
+          opacity: (1 - (_dragExtent / 200).clamp(0.0, 0.5)), // sfuma fino a metà opacità
+          child: ListTile(
+            leading: Image.file(
+              File(widget.track.cover_path),
+              width: 50,
+              height: 50,
+              fit: BoxFit.cover,
+            ),
+            title: Text('${widget.track.artista} - ${widget.track.titolo}'),
+            subtitle: Text(widget.track.album),
+            trailing: IconButton(
+              icon: Icon(
+                widget.isCurrent ? Icons.pause : Icons.play_arrow,
+              ),
+              onPressed: widget.onPlay,
+            ),
+          ),
+        ),
       ),
     );
   }

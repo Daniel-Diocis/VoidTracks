@@ -73,7 +73,7 @@ class _MarketScreenState extends State<MarketScreen> {
 
         if (shouldDownload) {
           _localTimestamps[id] = updated_at;
-          await addOrUpdateTrack(brano, musicFilePath, coverFilePath);
+          //await addOrUpdateTrack(brano, musicFilePath, coverFilePath);
         }
 
         risultati.add({
@@ -87,6 +87,21 @@ class _MarketScreenState extends State<MarketScreen> {
       }
 
       await _saveLocalTimestamps(directory);
+
+      risultati.sort((a, b) {
+        final artistaA = a['artista'].toString().toLowerCase();
+        final artistaB = b['artista'].toString().toLowerCase();
+        final confrontoArtista = artistaA.compareTo(artistaB);
+
+        if (confrontoArtista != 0) {
+          return confrontoArtista; // artisti diversi → ordina per artista
+        }
+
+        // artisti uguali → ordina per titolo
+        final titoloA = a['titolo'].toString().toLowerCase();
+        final titoloB = b['titolo'].toString().toLowerCase();
+        return titoloA.compareTo(titoloB);
+      });
 
       setState(() {
         braniConFile = risultati;
