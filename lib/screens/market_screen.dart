@@ -324,9 +324,18 @@ class _MarketScreenState extends State<MarketScreen> {
     _currentMarketNotifier.dispose();
     super.dispose();
   }
-
+  
   @override
   Widget build(BuildContext context) {
+    final query = _searchQuery.toLowerCase();
+    final braniFiltrati = _searchQuery.isEmpty
+    ? braniConFile
+    : braniConFile.where((brano) {
+        final query = _searchQuery.toLowerCase();
+        return brano['titolo'].toLowerCase().contains(query) ||
+               brano['artista'].toLowerCase().contains(query) ||
+               brano['album'].toLowerCase().contains(query);
+      }).toList();
     return Scaffold(
       appBar: AppBar(
         title: Row(
@@ -347,7 +356,8 @@ class _MarketScreenState extends State<MarketScreen> {
             onPressed: () {
               setState(() {
                 _showSearchBar = !_showSearchBar;
-                _searchQuery = ''; // resetto query se nascondo barra
+                _searchQuery = '';
+                _searchController.clear();
               });
             },
           ),
@@ -512,9 +522,9 @@ class _MarketScreenState extends State<MarketScreen> {
               // 🎧 Lista dei brani
               Expanded(
                 child: ListView.builder(
-                  itemCount: braniConFile.length,
+                  itemCount: braniFiltrati.length,
                   itemBuilder: (context, index) {
-                    final brano = braniConFile[index];
+                    final brano = braniFiltrati[index];
                     final isCurrent = _currentMarketNotifier.value?['music_path'] == brano['music_path'];
 
                     Icon trailingIcon;
