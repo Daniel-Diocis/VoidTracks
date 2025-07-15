@@ -71,15 +71,33 @@ class _NowPlayingScreenState extends State<NowPlayingScreen> {
               ),
               SizedBox(height: 30),
               Text(
-                track.titolo,
-                style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold),
-                textAlign: TextAlign.center,
-              ),
-              Text(
-                track.artista,
-                style: TextStyle(color: Colors.white70, fontSize: 16),
-                textAlign: TextAlign.center,
-              ),
+                  track.titolo,
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                SizedBox(height: 10),
+                Text(
+                  track.artista,
+                  style: TextStyle(
+                    color: Colors.white70,
+                    fontSize: 18,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                SizedBox(height: 6),
+                Text(
+                  track.album,
+                  style: TextStyle(
+                    color: Colors.white54,
+                    fontSize: 14,
+                    fontStyle: FontStyle.italic,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
               SizedBox(height: 10),
               StreamBuilder<Duration?>(
                 stream: widget.player.durationStream,
