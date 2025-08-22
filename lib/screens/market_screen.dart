@@ -23,7 +23,9 @@ class _MarketScreenState extends State<MarketScreen> {
   late ValueNotifier<Map<String, dynamic>?> _currentMarketNotifier;
   bool loading = true;
   bool _showSearchBar = false;
+  bool _isSearching = false;
   late TextEditingController _searchController;
+  List<Map<String, dynamic>> filteredBrani = [];
   String _searchQuery = '';
   Map<String, String> _localTimestamps = {};
 
@@ -33,6 +35,7 @@ class _MarketScreenState extends State<MarketScreen> {
     _setupAudioSession();
     _currentMarketNotifier = ValueNotifier(null);
     _searchController = TextEditingController();
+    _searchController.addListener(_filterBrani);
     _player.processingStateStream.listen((state) async {
       if (state == ProcessingState.completed) {
         skipToNext();
@@ -94,8 +97,8 @@ class _MarketScreenState extends State<MarketScreen> {
       await _saveLocalTimestamps(directory);
 
       risultati.sort((a, b) {
-        final artistaA = a['artista'].toString().toLowerCase();
-        final artistaB = b['artista'].toString().toLowerCase();
+        final artistaA = a['artista'].toString().split(',').first.trim().toLowerCase();
+        final artistaB = b['artista'].toString().split(',').first.trim().toLowerCase();
         final confrontoArtista = artistaA.compareTo(artistaB);
 
         if (confrontoArtista != 0) {
@@ -110,12 +113,24 @@ class _MarketScreenState extends State<MarketScreen> {
 
       setState(() {
         braniConFile = risultati;
+        filteredBrani = List.from(braniConFile);
         loading = false;
       });
     } catch (e) {
       print("❌ Errore nel caricamento dei brani: $e");
       setState(() => loading = false);
     }
+  }
+  void _filterBrani() {
+    final query = _searchController.text.toLowerCase();
+
+    setState(() {
+      filteredBrani = braniConFile.where((brano) {
+        return brano['titolo'].toLowerCase().contains(query) ||
+              brano['artista'].toLowerCase().contains(query) ||
+              brano['album'].toLowerCase().contains(query);
+      }).toList();
+    });
   }
   
   Future<void> addOrUpdateTrack(Map<String, dynamic> brano, String music_path, String cover_path) async {
@@ -324,18 +339,9 @@ class _MarketScreenState extends State<MarketScreen> {
     _currentMarketNotifier.dispose();
     super.dispose();
   }
-  
+
   @override
   Widget build(BuildContext context) {
-    final query = _searchQuery.toLowerCase();
-    final braniFiltrati = _searchQuery.isEmpty
-    ? braniConFile
-    : braniConFile.where((brano) {
-        final query = _searchQuery.toLowerCase();
-        return brano['titolo'].toLowerCase().contains(query) ||
-               brano['artista'].toLowerCase().contains(query) ||
-               brano['album'].toLowerCase().contains(query);
-      }).toList();
     return Scaffold(
       appBar: AppBar(
         title: Row(
@@ -356,8 +362,7 @@ class _MarketScreenState extends State<MarketScreen> {
             onPressed: () {
               setState(() {
                 _showSearchBar = !_showSearchBar;
-                _searchQuery = '';
-                _searchController.clear();
+                _searchQuery = ''; // resetto query se nascondo barra
               });
             },
           ),
@@ -522,9 +527,9 @@ class _MarketScreenState extends State<MarketScreen> {
               // 🎧 Lista dei brani
               Expanded(
                 child: ListView.builder(
-                  itemCount: braniFiltrati.length,
+                  itemCount: filteredBrani.length,
                   itemBuilder: (context, index) {
-                    final brano = braniFiltrati[index];
+                    final brano = filteredBrani[index];
                     final isCurrent = _currentMarketNotifier.value?['music_path'] == brano['music_path'];
 
                     Icon trailingIcon;
@@ -568,8 +573,8 @@ class _MarketScreenState extends State<MarketScreen> {
                             height: 50,
                             fit: BoxFit.cover,
                           ),
-                          title: Text('${brano['artista']} - ${brano['titolo']}'),
-                          subtitle: Text(brano['album']),
+                          title: Text(brano['titolo']),
+                          subtitle: Text(brano['artista']),
                           trailing: Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
