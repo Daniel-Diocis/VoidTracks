@@ -6,6 +6,7 @@ import 'package:just_audio_background/just_audio_background.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:isar/isar.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'models/track.dart';
 import 'screens/now_playing_screen.dart';
 import 'screens/market_screen.dart';
@@ -15,6 +16,7 @@ late final Isar isar;
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await dotenv.load(fileName: "assets/.env");
 
   // Inizializzazione Supabase
   await Supabase.initialize(
