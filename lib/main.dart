@@ -20,8 +20,8 @@ Future<void> main() async {
 
   // Inizializzazione Supabase
   await Supabase.initialize(
-    url: 'https://igohvppfcsipbmzpckei.supabase.co',
-    anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imlnb2h2cHBmY3NpcGJtenBja2VpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDQxMTc2MjcsImV4cCI6MjA1OTY5MzYyN30.HVORhtRVtZdrMN6TslgVyVCI474Lan5ScH9ri_W3alo',
+    url: '${dotenv.env['SUPABASE_URL']}',
+    anonKey: '${dotenv.env['SUPABASE_ANON_KEY']}',
   );
 
   // Inizializzazione Isar
