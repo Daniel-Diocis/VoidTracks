@@ -65,8 +65,8 @@ class _MarketScreenState extends State<MarketScreen> {
         final id = brano['music_path'];
         final updated_at = brano['updated_at'];
         final localUpdated = _localTimestamps[id];
-        final musicUrl = '${dotenv.env['MUSIC_URL']}/${brano['music_path']}';
-        final coverUrl = '${dotenv.env['COVER_URL']}/${brano['cover_path']}';
+        final musicUrl = '${dotenv.env['MUSIC_URL']}${brano['music_path']}';
+        final coverUrl = '${dotenv.env['COVER_URL']}${brano['cover_path']}';
 
         final shouldDownload = localUpdated == null || localUpdated != updated_at;
 
@@ -164,6 +164,9 @@ class _MarketScreenState extends State<MarketScreen> {
 
     final musicPathRemote = brano['music_path'];
     final coverPathRemote = brano['cover_path'];
+
+    final musicFilename = musicPathRemote.split('/').last;
+    final coverFilename = coverPathRemote.split('/').last;
     print('🧩 Contenuto di brano: $brano');
 
     if (musicPathRemote == null || coverPathRemote == null) {
@@ -177,7 +180,7 @@ class _MarketScreenState extends State<MarketScreen> {
     final musicBaseUrl = dotenv.env['MUSIC_URL']!;
     final localMusicPath = await _getOrDownloadFile(
       baseUrl: musicBaseUrl,
-      path: musicPathRemote,
+      path: musicFilename,
       saveDir: dir.path,
       forceDownload: true,
     );
@@ -186,7 +189,7 @@ class _MarketScreenState extends State<MarketScreen> {
     final coverBaseUrl = dotenv.env['COVER_URL']!;
     final localCoverPath = await _getOrDownloadFile(
       baseUrl: coverBaseUrl,
-      path: coverPathRemote,
+      path: coverFilename,
       saveDir: dir.path,
       forceDownload: true,
     );
