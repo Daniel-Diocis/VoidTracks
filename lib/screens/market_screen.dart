@@ -6,6 +6,8 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:just_audio/just_audio.dart';
 import 'package:audio_session/audio_session.dart';
 import 'package:just_audio_background/just_audio_background.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:http/http.dart' as http;
 import 'now_playing_market.dart';
 import 'package:isar/isar.dart';
 import '../models/track.dart';
@@ -63,17 +65,21 @@ class _MarketScreenState extends State<MarketScreen> {
         final id = brano['music_path'];
         final updated_at = brano['updated_at'];
         final localUpdated = _localTimestamps[id];
+        final musicUrl = '${dotenv.env['MUSIC_URL']}${brano['music_path']}';
+        final coverUrl = '${dotenv.env['COVER_URL']}${brano['cover_path']}';
 
         final shouldDownload = localUpdated == null || localUpdated != updated_at;
 
-        final musicFilePath = await _getOrDownloadFile(
-          bucket: 'music',
+        final musicBaseUrl = dotenv.env['MUSIC_URL']!;
+        final localMusicPath = await _getOrDownloadFile(
+          baseUrl: musicBaseUrl,
           path: brano['music_path'],
           saveDir: directory.path,
           forceDownload: shouldDownload,
         );
-        final coverFilePath = await _getOrDownloadFile(
-          bucket: 'cover',
+        final coverBaseUrl = dotenv.env['COVER_URL']!;
+        final localCoverPath = await _getOrDownloadFile(
+          baseUrl: coverBaseUrl,
           path: brano['cover_path'],
           saveDir: directory.path,
           forceDownload: shouldDownload,
@@ -88,8 +94,8 @@ class _MarketScreenState extends State<MarketScreen> {
           'titolo': brano['titolo'],
           'artista': brano['artista'],
           'album': brano['album'],
-          'music_path': musicFilePath,
-          'cover_path': coverFilePath,
+          'music_path': localMusicPath,
+          'cover_path': localCoverPath,
           'updated_at': updated_at,
         });
       }
@@ -158,6 +164,9 @@ class _MarketScreenState extends State<MarketScreen> {
 
     final musicPathRemote = brano['music_path'];
     final coverPathRemote = brano['cover_path'];
+
+    final musicFilename = musicPathRemote.split('/').last;
+    final coverFilename = coverPathRemote.split('/').last;
     print('🧩 Contenuto di brano: $brano');
 
     if (musicPathRemote == null || coverPathRemote == null) {
@@ -168,17 +177,19 @@ class _MarketScreenState extends State<MarketScreen> {
     final dir = await getApplicationDocumentsDirectory();
 
     print('⬇️ Scarico musica da "$musicPathRemote"');
-    final music_path = await _getOrDownloadFile(
-      bucket: 'music',
-      path: musicPathRemote,
+    final musicBaseUrl = dotenv.env['MUSIC_URL']!;
+    final localMusicPath = await _getOrDownloadFile(
+      baseUrl: musicBaseUrl,
+      path: musicFilename,
       saveDir: dir.path,
       forceDownload: true,
     );
 
     print('⬇️ Scarico cover da "$coverPathRemote"');
-    final cover_path = await _getOrDownloadFile(
-      bucket: 'cover',
-      path: coverPathRemote,
+    final coverBaseUrl = dotenv.env['COVER_URL']!;
+    final localCoverPath = await _getOrDownloadFile(
+      baseUrl: coverBaseUrl,
+      path: coverFilename,
       saveDir: dir.path,
       forceDownload: true,
     );
@@ -187,8 +198,8 @@ class _MarketScreenState extends State<MarketScreen> {
       ..titolo = brano['titolo']
       ..artista = brano['artista']
       ..album = brano['album']
-      ..music_path = music_path
-      ..cover_path = cover_path
+      ..music_path = localMusicPath
+      ..cover_path = localCoverPath
       ..updated_at = brano['updated_at']
       ..duration_ms = null;
 
@@ -197,8 +208,8 @@ class _MarketScreenState extends State<MarketScreen> {
     });
 
     print('✅ Brano scaricato e salvato: ${nuovoTrack.titolo}');
-    print('📁 Path file: $music_path');
-    print('🖼️ Path cover: $cover_path');
+    print('📁 Path file: $localMusicPath');
+    print('🖼️ Path cover: $localCoverPath');
 
     // 🧠 Aggiorna il timestamp locale
     _localTimestamps[brano['music_path']] = brano['updated_at'];
@@ -206,14 +217,14 @@ class _MarketScreenState extends State<MarketScreen> {
 
     // ✅ Aggiorna la lista a schermo
     setState(() {
-      final index = braniConFile.indexWhere((b) => b['music_path'] == music_path);
+      final index = braniConFile.indexWhere((b) => b['music_path'] == localMusicPath);
 
       final nuovoBrano = {
         'titolo': brano['titolo'],
         'artista': brano['artista'],
         'album': brano['album'],
-        'music_path': music_path,
-        'cover_path': cover_path,
+        'music_path': localMusicPath,
+        'cover_path': localCoverPath,
         'updated_at': brano['updated_at'],
       };
 
@@ -239,12 +250,12 @@ class _MarketScreenState extends State<MarketScreen> {
   }
 
   Future<String> _getOrDownloadFile({
-    required String bucket,
-    required String path,
+    required String baseUrl,         // 👈 usiamo direttamente il baseUrl completo
+    required String path,            // es: 'track.mp3' o 'cover.jpg'
     required String saveDir,
     required bool forceDownload,
   }) async {
-    final filename = path.split('/').last; // ✅ Solo il nome del file
+    final filename = path.split('/').last;
     final file = File('$saveDir/$filename');
 
     if (!forceDownload && await file.exists()) {
@@ -252,10 +263,15 @@ class _MarketScreenState extends State<MarketScreen> {
       return file.path;
     }
 
-    print('⬇️ Scaricamento da bucket "$bucket" path "$filename"...');
+    final url = '$baseUrl${Uri.encodeComponent(path)}';
+    print('⬇️ Scaricamento da URL: $url');
 
-    final response = await client.storage.from(bucket).download(filename);
-    final bytes = response;
+    final response = await http.get(Uri.parse(url));
+    if (response.statusCode != 200) {
+      throw Exception('❌ Errore nel download del file: ${response.statusCode}');
+    }
+
+    final bytes = response.bodyBytes;
 
     await file.create(recursive: true);
     await file.writeAsBytes(bytes);
