@@ -1,16 +1,50 @@
-# void_tracks
+# VoidTracks
 
-A new Flutter project.
+Applicazione mobile sviluppata in Flutter per la riproduzione e gestione di brani musicali con integrazione cloud per database e storage dei contenuti multimediali.
 
-## Getting Started
+## Demo
 
-This project is a starting point for a Flutter application.
+https://github.com/user-attachments/assets/3dc3289c-b2b9-4687-8449-bbae64815a55
 
-A few resources to get you started if this is your first Flutter project:
+## Funzionalità
 
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
+- Riproduzione di brani musicali con controlli play/pausa e navigazione tra tracce
+- Gestione della libreria musicale locale
+- Download dei brani da storage cloud
+- Integrazione con database remoto per i metadati dei brani
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+## Tecnologie utilizzate
+
+- Flutter
+- Dart
+- Supabase
+- Cloudflare
+
+## Architettura
+
+- **App mobile:** Flutter  
+- **Database:** Supabase  
+- **Storage:** Cloudflare
+
+L'applicazione recupera i metadati dei brani dal database remoto e scarica i contenuti multimediali dallo storage cloud per la riproduzione all'interno dell'app.
+
+## Avvio del progetto
+
+
+Clonare il repository:
+
+```bash
+git clone https://github.com/Daniel-Diocis/VoidTracks.git
+```
+
+Installare le dipendenze:
+
+```bash
+flutter pub get
+```
+
+Eseguire l'app:
+
+```bash
+flutter run
+```
