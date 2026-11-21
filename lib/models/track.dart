@@ -2,39 +2,20 @@ import 'package:isar/isar.dart';
 
 part 'track.g.dart';
 
+/// Download salvato sul dispositivo. I nomi dei campi Isar preservano i download della prima versione.
 @collection
 class Track {
   Id id = Isar.autoIncrement;
-
+  String? remoteId;
   late String titolo;
   late String artista;
   late String album;
-  late String music_path;
-  late String cover_path;
-  int? duration_ms;
-  late String updated_at;
-
-  Track();
-
-  factory Track.fromSupabase(Map<String, dynamic> brano) {
-    return Track()
-      ..titolo = brano['titolo']
-      ..artista = brano['artista']
-      ..album = brano['album']
-      ..music_path = brano['music_path']
-      ..cover_path = brano['cover_path']
-      ..updated_at = brano['updated_at'];
-  }
-
-  Map<String, dynamic> toMap() {
-    return {
-      'titolo': titolo,
-      'artista': artista,
-      'album': album,
-      'music_path': music_path,
-      'cover_path': cover_path,
-      'duration_ms': duration_ms,
-      'updated_at': updated_at,
-    };
-  }
+  @Name('music_path')
+  late String musicPath;
+  @Name('cover_path')
+  late String coverPath;
+  @Name('duration_ms')
+  int? durationMs;
+  @Name('updated_at')
+  late String updatedAt;
 }

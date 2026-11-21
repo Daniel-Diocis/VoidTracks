@@ -26,7 +26,7 @@ https://github.com/user-attachments/assets/3dc3289c-b2b9-4687-8449-bbae64815a55
 - **Database:** Supabase  
 - **Storage:** Cloudflare
 
-L'applicazione recupera i metadati dei brani dal database remoto e scarica i contenuti multimediali dallo storage cloud per la riproduzione all'interno dell'app.
+Il Catalogo legge i metadati da Supabase e riproduce i brani in streaming da Cloudflare R2. Con **Scarica** si salvano audio e copertina sul dispositivo. La scheda **Download** usa Isar e funziona offline. Le due schede condividono il player e i controlli di sistema.
 
 ## Avvio del progetto
 
@@ -36,6 +36,8 @@ Clonare il repository:
 ```bash
 git clone https://github.com/Daniel-Diocis/VoidTracks.git
 ```
+
+Configurare in `assets/.env` i valori client `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `MUSIC_URL` e `COVER_URL`. Gli ultimi due sono gli URL di lettura dei rispettivi bucket R2.
 
 Installare le dipendenze:
 
