@@ -1,6 +1,6 @@
+import 'package:audio_service/audio_service.dart';
 import 'package:flutter/material.dart';
 import 'package:just_audio/just_audio.dart';
-import 'package:just_audio_background/just_audio_background.dart';
 
 import '../playback/playback.dart';
 import 'artwork.dart';
@@ -33,7 +33,7 @@ class PlayerButtons extends StatelessWidget {
         iconSize: expanded ? 32 : null,
         tooltip: 'Ricomincia o torna al brano precedente',
         icon: const Icon(Icons.skip_previous),
-        onPressed: playback.previous,
+        onPressed: playback.skipToPrevious,
       ),
       StreamBuilder<bool>(
         stream: playback.player.playingStream,
@@ -71,7 +71,7 @@ class PlayerButtons extends StatelessWidget {
         iconSize: expanded ? 32 : null,
         tooltip: 'Successivo',
         icon: const Icon(Icons.skip_next),
-        onPressed: playback.next,
+        onPressed: playback.skipToNext,
       ),
     ],
   );

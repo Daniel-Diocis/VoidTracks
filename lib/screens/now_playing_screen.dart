@@ -1,66 +1,96 @@
 import 'dart:math' as math;
 
+import 'package:audio_service/audio_service.dart';
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:just_audio_background/just_audio_background.dart';
 
 import '../playback/playback.dart';
 import '../widgets/artwork.dart';
 import '../widgets/cover_color.dart';
 import '../widgets/player_controls.dart';
 
-class NowPlayingScreen extends StatelessWidget {
-  const NowPlayingScreen._(this.playback, this.scrollController);
+class NowPlayingScreen extends StatefulWidget {
+  const NowPlayingScreen._(this.playback);
   final Playback playback;
-  final ScrollController scrollController;
 
-  static Future<void> show(
-    BuildContext context,
-    Playback playback,
-  ) => showModalBottomSheet<void>(
-    context: context,
-    isScrollControlled: true,
-    constraints: const BoxConstraints(maxWidth: double.infinity),
-    backgroundColor: Colors.transparent,
-    showDragHandle: false,
-    builder:
-        (context) => MediaQuery.fromView(
-          view: View.of(context),
-          child: LayoutBuilder(
-            builder:
-                (_, viewport) => DraggableScrollableSheet(
-                  initialChildSize: 1,
-                  minChildSize: .7,
-                  snap: true,
-                  expand: false,
-                  builder:
-                      (_, scrollController) => OverflowBox(
-                        // Slide the player as one surface, keeping the artwork in place.
-                        alignment: Alignment.topCenter,
-                        minHeight: viewport.maxHeight,
-                        maxHeight: viewport.maxHeight,
-                        child: NowPlayingScreen._(playback, scrollController),
-                      ),
-                ),
-          ),
-        ),
-  );
+  static Future<void> show(BuildContext context, Playback playback) =>
+      showModalBottomSheet<void>(
+        context: context,
+        isScrollControlled: true,
+        enableDrag: false,
+        constraints: const BoxConstraints(maxWidth: double.infinity),
+        backgroundColor: Colors.transparent,
+        showDragHandle: false,
+        builder:
+            (context) => MediaQuery.fromView(
+              view: View.of(context),
+              child: NowPlayingScreen._(playback),
+            ),
+      );
 
   @override
-  Widget build(BuildContext context) => CurrentItem(playback, (item) {
-    if (item == null) {
-      return Scaffold(
-        appBar: AppBar(leading: const _CollapseButton()),
-        body: const Center(child: Text('Nessun brano in riproduzione')),
-      );
+  State<NowPlayingScreen> createState() => _NowPlayingScreenState();
+}
+
+class _NowPlayingScreenState extends State<NowPlayingScreen> {
+  final _scroll = ScrollController();
+  Offset _start = Offset.zero;
+  int? _pointer;
+
+  void _startSwipe(PointerDownEvent event) {
+    if (_pointer != null ||
+        (_scroll.hasClients && _scroll.position.extentBefore > 0)) {
+      return;
     }
-    return _TrackView(
-      key: ValueKey(item.artUri),
-      item: item,
-      playback: playback,
-      scrollController: scrollController,
-    );
-  });
+    _pointer = event.pointer;
+    _start = event.position;
+  }
+
+  void _updateSwipe(PointerMoveEvent event) {
+    if (event.pointer != _pointer) return;
+    final delta = event.position - _start;
+    if (delta.distance < kTouchSlop) return;
+    if (delta.dy <= delta.dx.abs()) {
+      _pointer = null;
+    } else if (delta.dy >= 48) {
+      _pointer = null;
+      if (ModalRoute.of(context)?.isCurrent == true) Navigator.pop(context);
+    }
+  }
+
+  void _endSwipe(PointerEvent event) {
+    if (_pointer == event.pointer) _pointer = null;
+  }
+
+  @override
+  void dispose() {
+    _scroll.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => Listener(
+    behavior: HitTestBehavior.opaque,
+    onPointerDown: _startSwipe,
+    onPointerMove: _updateSwipe,
+    onPointerUp: _endSwipe,
+    onPointerCancel: _endSwipe,
+    child: CurrentItem(widget.playback, (item) {
+      if (item == null) {
+        return Scaffold(
+          appBar: AppBar(leading: const _CollapseButton()),
+          body: const Center(child: Text('Nessun brano in riproduzione')),
+        );
+      }
+      return _TrackView(
+        key: ValueKey(item.artUri),
+        item: item,
+        playback: widget.playback,
+        scrollController: _scroll,
+      );
+    }),
+  );
 }
 
 class _CollapseButton extends StatelessWidget {
@@ -139,9 +169,7 @@ class _TrackViewState extends State<_TrackView> {
     final controls = _controls(context);
     return SingleChildScrollView(
       controller: widget.scrollController,
-      physics: const AlwaysScrollableScrollPhysics(
-        parent: ClampingScrollPhysics(),
-      ),
+      physics: const ClampingScrollPhysics(),
       child: ConstrainedBox(
         constraints: BoxConstraints(minHeight: space.maxHeight),
         child: Center(

@@ -1,9 +1,9 @@
+import 'package:audio_service/audio_service.dart';
 import 'package:audio_session/audio_session.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:http/http.dart' as http;
 import 'package:isar/isar.dart';
-import 'package:just_audio_background/just_audio_background.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -26,16 +26,17 @@ Future<void> main() async {
   final db = await Isar.open([TrackSchema], directory: documents.path);
   final downloads = Downloads(db, documents, http.Client());
   await downloads.initialize();
-  await JustAudioBackground.init(
-    androidNotificationChannelId: 'com.tuaapp.channel.audio',
-    androidNotificationChannelName: 'Riproduzione audio',
-    androidNotificationOngoing: true,
-    androidNotificationIcon: 'drawable/ic_notification',
+  final playback = await AudioService.init(
+    builder: () => Playback(),
+    config: const AudioServiceConfig(
+      androidNotificationChannelId: 'com.tuaapp.channel.audio',
+      androidNotificationChannelName: 'Riproduzione audio',
+      androidNotificationIcon: 'drawable/ic_notification',
+    ),
   );
   await (await AudioSession.instance).configure(
     const AudioSessionConfiguration.music(),
   );
-  final playback = Playback();
   await playback.initialize();
   final catalog = Catalog(
     Supabase.instance.client,
