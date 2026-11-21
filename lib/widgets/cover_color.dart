@@ -1,8 +1,8 @@
 import 'dart:async';
+import 'dart:typed_data';
 import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
-import 'package:material_color_utilities/score/score.dart';
 
 const playerFallbackColor = Color(0xff263032);
 
@@ -36,29 +36,12 @@ Future<Color> coverColor(ImageProvider? provider) async {
       image,
       Rect.fromLTWH(0, 0, image.width.toDouble(), image.height.toDouble()),
       const Rect.fromLTWH(0, 0, 32, 32),
-      Paint()..filterQuality = FilterQuality.low,
+      Paint()..filterQuality = FilterQuality.medium,
     );
     picture = recorder.endRecording();
     sample = await picture.toImage(size, size);
     final bytes = await sample.toByteData(format: ui.ImageByteFormat.rawRgba);
-    if (bytes == null) return playerFallbackColor;
-    final counts = <int, int>{};
-    for (var i = 0; i < bytes.lengthInBytes; i += 4) {
-      if (bytes.getUint8(i + 3) < 200) continue;
-      final rgb =
-          0xff000000 |
-          (bytes.getUint8(i) << 16) |
-          (bytes.getUint8(i + 1) << 8) |
-          bytes.getUint8(i + 2);
-      counts[rgb] = (counts[rgb] ?? 0) + 1;
-    }
-    final seed =
-        Score.score(counts, desired: 1, fallbackColorARGB: 0xff505050).first;
-    final tone = HSLColor.fromColor(Color(seed));
-    return tone
-        .withLightness(0.23)
-        .withSaturation(tone.saturation.clamp(0.0, 0.62))
-        .toColor();
+    return bytes == null ? playerFallbackColor : _mutedTone(bytes);
   } catch (_) {
     return playerFallbackColor;
   } finally {
@@ -67,4 +50,41 @@ Future<Color> coverColor(ImageProvider? provider) async {
     picture?.dispose();
     info?.dispose();
   }
+}
+
+Color _mutedTone(ByteData pixels) {
+  // Group similar shades so a flat, vivid logo doesn't outweigh a shaded area.
+  final weights = List.filled(12, 0.0);
+  final hueOffsets = List.filled(12, 0.0);
+  var opaque = 0;
+  var chromatic = 0;
+  for (var i = 0; i < pixels.lengthInBytes; i += 4) {
+    if (pixels.getUint8(i + 3) < 200) continue;
+    opaque++;
+    final color = Color.fromARGB(
+      255,
+      pixels.getUint8(i),
+      pixels.getUint8(i + 1),
+      pixels.getUint8(i + 2),
+    );
+    final tone = HSLColor.fromColor(color);
+    final chroma = tone.saturation * (1 - (2 * tone.lightness - 1).abs());
+    if (chroma < .09) continue;
+    chromatic++;
+    final sector = (tone.hue / 30).round();
+    final bin = sector % 12;
+    final weight = 1 - .8 * tone.saturation * tone.saturation;
+    weights[bin] += weight;
+    hueOffsets[bin] += weight * (tone.hue - sector * 30);
+  }
+  if (opaque == 0) return playerFallbackColor;
+  final coverage = chromatic / opaque;
+  if (coverage < .06) return const Color(0xff393939);
+  var best = 0;
+  for (var bin = 1; bin < weights.length; bin++) {
+    if (weights[bin] > weights[best]) best = bin;
+  }
+  final hue = (best * 30 + hueOffsets[best] / weights[best]) % 360;
+  final saturation = .16 + .26 * coverage;
+  return HSLColor.fromAHSL(1, hue, saturation, .18).toColor();
 }

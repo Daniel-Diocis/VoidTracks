@@ -11,12 +11,10 @@ class SongList extends StatefulWidget {
     required this.onSelect,
     required this.action,
     this.currentId,
-    this.playing = false,
   });
   final List<Song> songs;
   final String emptyMessage;
   final String? currentId;
-  final bool playing;
   final void Function(List<Song>, Song) onSelect;
   final Widget Function(Song) action;
 
@@ -72,24 +70,7 @@ class _SongListState extends State<SongList> {
                           overflow: TextOverflow.ellipsis,
                         ),
                         onTap: () => widget.onSelect(visible, song),
-                        trailing: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            widget.action(song),
-                            IconButton(
-                              tooltip:
-                                  selected && widget.playing
-                                      ? 'Pausa'
-                                      : 'Riproduci',
-                              icon: Icon(
-                                selected && widget.playing
-                                    ? Icons.pause
-                                    : Icons.play_arrow,
-                              ),
-                              onPressed: () => widget.onSelect(visible, song),
-                            ),
-                          ],
-                        ),
+                        trailing: widget.action(song),
                       );
                     },
                   ),

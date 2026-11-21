@@ -9,6 +9,20 @@ import 'package:void_tracks/screens/settings_screen.dart';
 import 'package:void_tracks/settings/theme_preference.dart';
 import 'package:void_tracks/widgets/cover_color.dart';
 
+Future<Color> _sampleCover(void Function(Canvas) draw) async {
+  final recorder = ui.PictureRecorder();
+  draw(Canvas(recorder));
+  final picture = recorder.endRecording();
+  final image = await picture.toImage(32, 32);
+  try {
+    final png = await image.toByteData(format: ui.ImageByteFormat.png);
+    return await coverColor(MemoryImage(png!.buffer.asUint8List()));
+  } finally {
+    image.dispose();
+    picture.dispose();
+  }
+}
+
 void main() {
   testWidgets('Il tema cambia subito e viene riletto al prossimo avvio', (
     tester,
@@ -50,22 +64,36 @@ void main() {
     (tester) async {
       await tester.runAsync(() async {
         for (final color in [Colors.red, Colors.blue]) {
-          final recorder = ui.PictureRecorder();
-          Canvas(recorder).drawColor(color, BlendMode.src);
-          final picture = recorder.endRecording();
-          final image = await picture.toImage(16, 16);
-          final png = await image.toByteData(format: ui.ImageByteFormat.png);
-          final result = await coverColor(
-            MemoryImage(png!.buffer.asUint8List()),
+          final result = await _sampleCover(
+            (canvas) => canvas.drawColor(color, BlendMode.src),
           );
           expect(
             HSLColor.fromColor(result).hue,
             closeTo(HSLColor.fromColor(color).hue, 2),
           );
           expect(1.05 / (result.computeLuminance() + 0.05), greaterThan(4.5));
-          image.dispose();
-          picture.dispose();
+          expect(HSLColor.fromColor(result).saturation, lessThan(.45));
         }
+        final neutral = await _sampleCover((canvas) {
+          canvas.drawColor(Colors.grey, BlendMode.src);
+          canvas.drawRect(
+            const Rect.fromLTWH(0, 0, 5, 5),
+            Paint()..color = Colors.red,
+          );
+        });
+        expect(HSLColor.fromColor(neutral).saturation, 0);
+        final mixed = await _sampleCover((canvas) {
+          canvas.drawColor(Colors.white, BlendMode.src);
+          canvas.drawRect(
+            const Rect.fromLTWH(0, 0, 12, 32),
+            Paint()..color = const Color(0xffff0000),
+          );
+          canvas.drawRect(
+            const Rect.fromLTWH(12, 0, 10, 32),
+            Paint()..color = const Color(0xff829fc2),
+          );
+        });
+        expect(HSLColor.fromColor(mixed).hue, closeTo(213, 4));
         expect(await coverColor(null), playerFallbackColor);
         expect(
           await coverColor(MemoryImage(Uint8List.fromList([1, 2, 3]))),

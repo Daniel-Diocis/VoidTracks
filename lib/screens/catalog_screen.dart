@@ -12,14 +12,12 @@ class CatalogScreen extends StatefulWidget {
     required this.onSelect,
     required this.onOpenSettings,
     this.currentId,
-    this.playing = false,
   });
   final Future<List<Song>> Function() load;
   final Downloads downloads;
   final void Function(List<Song>, Song) onSelect;
   final VoidCallback onOpenSettings;
   final String? currentId;
-  final bool playing;
 
   @override
   State<CatalogScreen> createState() => _CatalogScreenState();
@@ -113,7 +111,6 @@ class _CatalogScreenState extends State<CatalogScreen> {
                           emptyMessage: 'Il catalogo è vuoto',
                           onSelect: widget.onSelect,
                           currentId: widget.currentId,
-                          playing: widget.playing,
                           action: (song) {
                             if (_saving.contains(song.id)) {
                               return const SizedBox.square(

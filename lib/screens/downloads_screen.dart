@@ -11,13 +11,11 @@ class DownloadsScreen extends StatelessWidget {
     required this.onSelect,
     required this.onOpenSettings,
     this.currentId,
-    this.playing = false,
   });
   final Downloads downloads;
   final void Function(List<Song>, Song) onSelect;
   final VoidCallback onOpenSettings;
   final String? currentId;
-  final bool playing;
 
   Future<void> _remove(BuildContext context, Song song) async {
     final confirmed = await showDialog<bool>(
@@ -70,7 +68,6 @@ class DownloadsScreen extends StatelessWidget {
             emptyMessage: 'I brani che scarichi appariranno qui.',
             onSelect: onSelect,
             currentId: currentId,
-            playing: playing,
             action:
                 (song) => IconButton(
                   icon: const Icon(Icons.delete_outline),

@@ -52,7 +52,8 @@ void main() {
       await tester.tap(find.text('Riprova'));
       await tester.pumpAndSettle();
       await tester.enterText(find.byType(TextField), 'ospite');
-      await tester.tap(find.byTooltip('Riproduci'));
+      expect(find.byIcon(Icons.play_arrow), findsNothing);
+      await tester.tap(find.text('Brano'));
       expect(playing?.audio.scheme, 'https');
       expect(downloads.saved, isEmpty);
       await tester.tap(find.byTooltip('Scarica'));

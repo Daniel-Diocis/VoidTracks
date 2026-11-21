@@ -78,46 +78,35 @@ class _VoidTracksAppState extends State<VoidTracksApp> {
             (context) => Scaffold(
               body: CurrentItem(
                 playback,
-                (item) => StreamBuilder<bool>(
-                  stream: playback.player.playingStream,
-                  initialData: playback.player.playing,
-                  builder:
-                      (_, state) => IndexedStack(
-                        index: _tab,
-                        children: [
-                          CatalogScreen(
-                            load: widget.catalog.load,
-                            downloads: widget.downloads,
-                            onSelect: playback.select,
-                            onOpenSettings:
-                                () => Navigator.of(context).push(
-                                  MaterialPageRoute(
-                                    builder:
-                                        (_) => SettingsScreen(
-                                          widget.themePreference,
-                                        ),
-                                  ),
-                                ),
-                            currentId: item?.id,
-                            playing: state.data == true,
+                (item) => IndexedStack(
+                  index: _tab,
+                  children: [
+                    CatalogScreen(
+                      load: widget.catalog.load,
+                      downloads: widget.downloads,
+                      onSelect: playback.select,
+                      onOpenSettings:
+                          () => Navigator.of(context).push(
+                            MaterialPageRoute(
+                              builder:
+                                  (_) => SettingsScreen(widget.themePreference),
+                            ),
                           ),
-                          DownloadsScreen(
-                            downloads: widget.downloads,
-                            onSelect: playback.select,
-                            onOpenSettings:
-                                () => Navigator.of(context).push(
-                                  MaterialPageRoute(
-                                    builder:
-                                        (_) => SettingsScreen(
-                                          widget.themePreference,
-                                        ),
-                                  ),
-                                ),
-                            currentId: item?.id,
-                            playing: state.data == true,
+                      currentId: item?.id,
+                    ),
+                    DownloadsScreen(
+                      downloads: widget.downloads,
+                      onSelect: playback.select,
+                      onOpenSettings:
+                          () => Navigator.of(context).push(
+                            MaterialPageRoute(
+                              builder:
+                                  (_) => SettingsScreen(widget.themePreference),
+                            ),
                           ),
-                        ],
-                      ),
+                      currentId: item?.id,
+                    ),
+                  ],
                 ),
               ),
               bottomNavigationBar: Column(
@@ -125,12 +114,7 @@ class _VoidTracksAppState extends State<VoidTracksApp> {
                 children: [
                   MiniPlayer(
                     playback,
-                    onOpen:
-                        () => Navigator.of(context).push(
-                          MaterialPageRoute(
-                            builder: (_) => NowPlayingScreen(playback),
-                          ),
-                        ),
+                    onOpen: () => NowPlayingScreen.show(context, playback),
                   ),
                   NavigationBar(
                     selectedIndex: _tab,

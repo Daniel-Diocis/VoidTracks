@@ -4,12 +4,20 @@ import 'package:just_audio/just_audio.dart';
 import 'package:just_audio_background/just_audio_background.dart';
 import 'package:void_tracks/playback/playback.dart';
 import 'package:void_tracks/widgets/player_controls.dart';
+import 'package:void_tracks/screens/now_playing_screen.dart';
+import 'package:void_tracks/widgets/artwork.dart';
 
 class _Player extends Fake implements AudioPlayer {
   @override
   Duration position = const Duration(seconds: 3);
   @override
   bool hasPrevious = true;
+  @override
+  Duration get duration => const Duration(minutes: 4);
+  @override
+  Stream<Duration?> get durationStream => const Stream.empty();
+  @override
+  Stream<Duration> get positionStream => const Stream.empty();
   int previousCalls = 0;
   @override
   bool get playing => false;
@@ -65,6 +73,9 @@ class _Controls extends Fake implements Playback {
   Future<void> toggle() async {}
 
   @override
+  Future<void> seek(Duration position) => player.seek(position);
+
+  @override
   Future<void> next() async {}
 }
 
@@ -116,5 +127,41 @@ void main() {
     expect(opened, isFalse);
     await tester.tap(find.text('Artista'));
     expect(opened, isTrue);
+  });
+  testWidgets('Slider, trascinamento e freccia del player', (tester) async {
+    await tester.binding.setSurfaceSize(const Size(390, 844));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    final playback = _Controls();
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Builder(
+          builder:
+              (context) => TextButton(
+                onPressed: () => NowPlayingScreen.show(context, playback),
+                child: const Text('Apri player'),
+              ),
+        ),
+      ),
+    );
+    Future<void> open() async {
+      await tester.tap(find.text('Apri player'));
+      await tester.pumpAndSettle();
+      expect(find.byTooltip('Riduci player'), findsOneWidget);
+    }
+
+    await open();
+    final slider = find.byType(Slider);
+    await tester.drag(slider, const Offset(60, 0));
+    await tester.pumpAndSettle();
+    final position = playback.player.position;
+    expect(position, greaterThan(const Duration(seconds: 3)));
+    await tester.fling(find.byType(Artwork), const Offset(0, 180), 900);
+    await tester.pumpAndSettle();
+    expect(find.byTooltip('Riduci player'), findsNothing);
+    expect(playback.player.position, position);
+    await open();
+    await tester.tap(find.byTooltip('Riduci player'));
+    await tester.pumpAndSettle();
+    expect(find.byTooltip('Riduci player'), findsNothing);
   });
 }
