@@ -7,19 +7,20 @@ class Artwork extends StatelessWidget {
   final Uri? uri;
   final double size;
 
+  static ImageProvider? providerFor(Uri? source) {
+    if (source == null) return null;
+    return source.scheme == 'file'
+        ? FileImage(File.fromUri(source))
+        : NetworkImage(source.toString());
+  }
+
   @override
   Widget build(BuildContext context) {
-    final source = uri;
     Widget placeholder() => const ColoredBox(
       color: Color(0xff30343b),
       child: Center(child: Icon(Icons.music_note, color: Colors.white70)),
     );
-    final ImageProvider? image =
-        source == null
-            ? null
-            : source.scheme == 'file'
-            ? FileImage(File.fromUri(source))
-            : NetworkImage(source.toString());
+    final image = providerFor(uri);
     return ClipRRect(
       borderRadius: BorderRadius.circular(8),
       child: SizedBox.square(

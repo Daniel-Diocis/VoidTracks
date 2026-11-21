@@ -8,6 +8,8 @@ import 'playback/playback.dart';
 import 'screens/catalog_screen.dart';
 import 'screens/downloads_screen.dart';
 import 'screens/now_playing_screen.dart';
+import 'screens/settings_screen.dart';
+import 'settings/theme_preference.dart';
 import 'widgets/player_controls.dart';
 
 class VoidTracksApp extends StatefulWidget {
@@ -16,10 +18,12 @@ class VoidTracksApp extends StatefulWidget {
     required this.catalog,
     required this.downloads,
     required this.playback,
+    required this.themePreference,
   });
   final Catalog catalog;
   final Downloads downloads;
   final Playback playback;
+  final ThemePreference themePreference;
 
   @override
   State<VoidTracksApp> createState() => _VoidTracksAppState();
@@ -50,6 +54,7 @@ class _VoidTracksAppState extends State<VoidTracksApp> {
     widget.downloads.removeListener(_downloadsChanged);
     _errors.cancel();
     widget.playback.dispose();
+    widget.themePreference.dispose();
     widget.downloads.dispose();
     super.dispose();
   }
@@ -57,10 +62,18 @@ class _VoidTracksAppState extends State<VoidTracksApp> {
   @override
   Widget build(BuildContext context) {
     final playback = widget.playback;
-    return MaterialApp(
-      title: 'VoidTracks',
-      scaffoldMessengerKey: _messenger,
-      home: Builder(
+    return ValueListenableBuilder<ThemeMode>(
+      valueListenable: widget.themePreference,
+      builder:
+          (_, mode, home) => MaterialApp(
+            theme: appTheme(Brightness.light),
+            darkTheme: appTheme(Brightness.dark),
+            themeMode: mode,
+            title: 'VoidTracks',
+            scaffoldMessengerKey: _messenger,
+            home: home,
+          ),
+      child: Builder(
         builder:
             (context) => Scaffold(
               body: CurrentItem(
@@ -76,12 +89,30 @@ class _VoidTracksAppState extends State<VoidTracksApp> {
                             load: widget.catalog.load,
                             downloads: widget.downloads,
                             onSelect: playback.select,
+                            onOpenSettings:
+                                () => Navigator.of(context).push(
+                                  MaterialPageRoute(
+                                    builder:
+                                        (_) => SettingsScreen(
+                                          widget.themePreference,
+                                        ),
+                                  ),
+                                ),
                             currentId: item?.id,
                             playing: state.data == true,
                           ),
                           DownloadsScreen(
                             downloads: widget.downloads,
                             onSelect: playback.select,
+                            onOpenSettings:
+                                () => Navigator.of(context).push(
+                                  MaterialPageRoute(
+                                    builder:
+                                        (_) => SettingsScreen(
+                                          widget.themePreference,
+                                        ),
+                                  ),
+                                ),
                             currentId: item?.id,
                             playing: state.data == true,
                           ),

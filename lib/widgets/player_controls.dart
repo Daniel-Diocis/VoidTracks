@@ -21,7 +21,8 @@ class CurrentItem extends StatelessWidget {
 }
 
 class PlayerButtons extends StatelessWidget {
-  const PlayerButtons(this.playback, {super.key});
+  const PlayerButtons(this.playback, {super.key, this.expanded = false});
+  final bool expanded;
   final Playback playback;
 
   @override
@@ -29,6 +30,7 @@ class PlayerButtons extends StatelessWidget {
     mainAxisSize: MainAxisSize.min,
     children: [
       IconButton(
+        iconSize: expanded ? 32 : null,
         tooltip: 'Ricomincia o torna al brano precedente',
         icon: const Icon(Icons.skip_previous),
         onPressed: playback.previous,
@@ -36,14 +38,37 @@ class PlayerButtons extends StatelessWidget {
       StreamBuilder<bool>(
         stream: playback.player.playingStream,
         initialData: playback.player.playing,
-        builder:
-            (_, state) => IconButton(
-              tooltip: state.data == true ? 'Pausa' : 'Riproduci',
-              icon: Icon(state.data == true ? Icons.pause : Icons.play_arrow),
-              onPressed: playback.toggle,
-            ),
+        builder: (_, state) {
+          final playing = state.data == true;
+          final tooltip = playing ? 'Pausa' : 'Riproduci';
+          final icon = Icon(
+            playing ? Icons.pause_rounded : Icons.play_arrow_rounded,
+          );
+          if (expanded) {
+            return Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: IconButton.filled(
+                tooltip: tooltip,
+                icon: icon,
+                iconSize: 34,
+                style: IconButton.styleFrom(
+                  backgroundColor: Colors.white,
+                  foregroundColor: Colors.black,
+                  fixedSize: const Size.square(64),
+                ),
+                onPressed: playback.toggle,
+              ),
+            );
+          }
+          return IconButton(
+            tooltip: tooltip,
+            icon: icon,
+            onPressed: playback.toggle,
+          );
+        },
       ),
       IconButton(
+        iconSize: expanded ? 32 : null,
         tooltip: 'Successivo',
         icon: const Icon(Icons.skip_next),
         onPressed: playback.next,
@@ -60,6 +85,8 @@ class MiniPlayer extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
+    final dark = colors.brightness == Brightness.dark;
+    final ink = dark ? colors.onSurface : colors.onInverseSurface;
     return CurrentItem(playback, (item) {
       if (item == null) return const SizedBox.shrink();
       return SafeArea(
@@ -68,7 +95,8 @@ class MiniPlayer extends StatelessWidget {
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
           child: Material(
-            color: colors.inverseSurface,
+            color:
+                dark ? colors.surfaceContainerHighest : colors.inverseSurface,
             borderRadius: BorderRadius.circular(16),
             clipBehavior: Clip.antiAlias,
             child: ListTile(
@@ -77,7 +105,7 @@ class MiniPlayer extends StatelessWidget {
                 end: 4,
               ),
               horizontalTitleGap: 10,
-              textColor: colors.onInverseSurface,
+              textColor: ink,
               onTap: onOpen,
               leading: Artwork(item.artUri),
               title: Text(
@@ -93,9 +121,7 @@ class MiniPlayer extends StatelessWidget {
               ),
               trailing: IconButtonTheme(
                 data: IconButtonThemeData(
-                  style: IconButton.styleFrom(
-                    foregroundColor: colors.onInverseSurface,
-                  ),
+                  style: IconButton.styleFrom(foregroundColor: ink),
                 ),
                 child: PlayerButtons(playback),
               ),

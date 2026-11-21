@@ -36,6 +36,7 @@ void main() {
         MaterialApp(
           home: CatalogScreen(
             downloads: downloads,
+            onOpenSettings: () {},
             load: () async {
               if (attempts++ == 0) throw StateError('offline');
               return [song];

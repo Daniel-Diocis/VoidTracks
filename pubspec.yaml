@@ -16,6 +16,8 @@ dependencies:
   audio_session: ^0.1.15
   isar: ^3.1.0
   isar_flutter_libs: ^3.1.0 # solo per Android/iOS
+  shared_preferences: ^2.5.3
+  material_color_utilities: ^0.11.1
   http: ^1.5.0
   path_provider: ^2.1.1
   supabase_flutter: ^2.8.4

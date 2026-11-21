@@ -109,7 +109,7 @@ void main() {
     final previous = find.byIcon(Icons.skip_previous);
     expect(
       tester.getCenter(previous).dx,
-      lessThan(tester.getCenter(find.byIcon(Icons.play_arrow)).dx),
+      lessThan(tester.getCenter(find.byIcon(Icons.play_arrow_rounded)).dx),
     );
     await tester.tap(previous);
     expect(playback.previousCalls, 1);

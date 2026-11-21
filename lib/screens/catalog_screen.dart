@@ -10,12 +10,14 @@ class CatalogScreen extends StatefulWidget {
     required this.load,
     required this.downloads,
     required this.onSelect,
+    required this.onOpenSettings,
     this.currentId,
     this.playing = false,
   });
   final Future<List<Song>> Function() load;
   final Downloads downloads;
   final void Function(List<Song>, Song) onSelect;
+  final VoidCallback onOpenSettings;
   final String? currentId;
   final bool playing;
 
@@ -80,6 +82,11 @@ class _CatalogScreenState extends State<CatalogScreen> {
           tooltip: 'Aggiorna catalogo',
           onPressed: _loading ? null : _refresh,
           icon: const Icon(Icons.refresh),
+        ),
+        IconButton(
+          tooltip: 'Impostazioni',
+          icon: const Icon(Icons.settings_outlined),
+          onPressed: widget.onOpenSettings,
         ),
       ],
     ),

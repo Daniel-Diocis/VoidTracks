@@ -9,11 +9,13 @@ class DownloadsScreen extends StatelessWidget {
     super.key,
     required this.downloads,
     required this.onSelect,
+    required this.onOpenSettings,
     this.currentId,
     this.playing = false,
   });
   final Downloads downloads;
   final void Function(List<Song>, Song) onSelect;
+  final VoidCallback onOpenSettings;
   final String? currentId;
   final bool playing;
 
@@ -50,7 +52,16 @@ class DownloadsScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Scaffold(
-    appBar: AppBar(title: const Text('Download')),
+    appBar: AppBar(
+      title: const Text('Download'),
+      actions: [
+        IconButton(
+          tooltip: 'Impostazioni',
+          icon: const Icon(Icons.settings_outlined),
+          onPressed: onOpenSettings,
+        ),
+      ],
+    ),
     body: ListenableBuilder(
       listenable: downloads,
       builder:

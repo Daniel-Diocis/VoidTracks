@@ -5,6 +5,7 @@ import 'package:http/http.dart' as http;
 import 'package:isar/isar.dart';
 import 'package:just_audio_background/just_audio_background.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'app.dart';
@@ -12,6 +13,7 @@ import 'data/catalog.dart';
 import 'data/downloads.dart';
 import 'models/track.dart';
 import 'playback/playback.dart';
+import 'settings/theme_preference.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -41,6 +43,11 @@ Future<void> main() async {
     Uri.parse(dotenv.get('COVER_URL')),
   );
   runApp(
-    VoidTracksApp(catalog: catalog, downloads: downloads, playback: playback),
+    VoidTracksApp(
+      catalog: catalog,
+      downloads: downloads,
+      playback: playback,
+      themePreference: ThemePreference(await SharedPreferences.getInstance()),
+    ),
   );
 }
