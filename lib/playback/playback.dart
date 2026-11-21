@@ -6,14 +6,14 @@ import 'package:just_audio_background/just_audio_background.dart';
 import '../models/song.dart';
 
 class Playback {
-  final player = AudioPlayer();
+  final AudioPlayer player;
   final _errors = StreamController<Object>.broadcast();
   Stream<Object> get errors => _errors.stream;
   List<Song> _queue = [];
   Future<void> _pending = Future.value();
   late final StreamSubscription<PlaybackEvent> _events;
 
-  Playback() {
+  Playback({AudioPlayer? audioPlayer}) : player = audioPlayer ?? AudioPlayer() {
     _events = player.playbackEventStream.listen((_) {}, onError: _errors.add);
   }
 
@@ -121,7 +121,13 @@ class Playback {
 
   Future<void> toggle() => _command(_toggle);
   Future<void> next() => _command(player.seekToNext);
-  Future<void> previous() => _command(player.seekToPrevious);
+  Future<void> previous() => _command(() async {
+    if (player.position >= const Duration(seconds: 3) || !player.hasPrevious) {
+      await player.seek(Duration.zero);
+    } else {
+      await player.seekToPrevious();
+    }
+  });
   Future<void> seek(Duration duration) => _command(() => player.seek(duration));
 
   Future<void> dispose() async {

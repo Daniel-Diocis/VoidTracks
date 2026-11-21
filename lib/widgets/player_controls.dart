@@ -21,20 +21,18 @@ class CurrentItem extends StatelessWidget {
 }
 
 class PlayerButtons extends StatelessWidget {
-  const PlayerButtons(this.playback, {super.key, this.compact = false});
+  const PlayerButtons(this.playback, {super.key});
   final Playback playback;
-  final bool compact;
 
   @override
   Widget build(BuildContext context) => Row(
     mainAxisSize: MainAxisSize.min,
     children: [
-      if (!compact)
-        IconButton(
-          tooltip: 'Precedente',
-          icon: const Icon(Icons.skip_previous),
-          onPressed: playback.previous,
-        ),
+      IconButton(
+        tooltip: 'Ricomincia o torna al brano precedente',
+        icon: const Icon(Icons.skip_previous),
+        onPressed: playback.previous,
+      ),
       StreamBuilder<bool>(
         stream: playback.player.playingStream,
         initialData: playback.player.playing,
@@ -60,16 +58,31 @@ class MiniPlayer extends StatelessWidget {
   final VoidCallback onOpen;
 
   @override
-  Widget build(BuildContext context) => CurrentItem(
-    playback,
-    (item) =>
-        item == null
-            ? const SizedBox.shrink()
-            : ListTile(
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    return CurrentItem(playback, (item) {
+      if (item == null) return const SizedBox.shrink();
+      return SafeArea(
+        top: false,
+        bottom: false,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+          child: Material(
+            color: colors.inverseSurface,
+            borderRadius: BorderRadius.circular(16),
+            clipBehavior: Clip.antiAlias,
+            child: ListTile(
+              contentPadding: const EdgeInsetsDirectional.only(
+                start: 12,
+                end: 4,
+              ),
+              horizontalTitleGap: 10,
+              textColor: colors.onInverseSurface,
               onTap: onOpen,
               leading: Artwork(item.artUri),
               title: Text(
                 item.title,
+                style: const TextStyle(fontWeight: FontWeight.w600),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
               ),
@@ -78,7 +91,18 @@ class MiniPlayer extends StatelessWidget {
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
               ),
-              trailing: PlayerButtons(playback, compact: true),
+              trailing: IconButtonTheme(
+                data: IconButtonThemeData(
+                  style: IconButton.styleFrom(
+                    foregroundColor: colors.onInverseSurface,
+                  ),
+                ),
+                child: PlayerButtons(playback),
+              ),
             ),
-  );
+          ),
+        ),
+      );
+    });
+  }
 }
