@@ -42,13 +42,18 @@ const TrackSchema = CollectionSchema(
       name: r'music_path',
       type: IsarType.string,
     ),
-    r'titolo': PropertySchema(
+    r'remoteId': PropertySchema(
       id: 5,
+      name: r'remoteId',
+      type: IsarType.string,
+    ),
+    r'titolo': PropertySchema(
+      id: 6,
       name: r'titolo',
       type: IsarType.string,
     ),
     r'updated_at': PropertySchema(
-      id: 6,
+      id: 7,
       name: r'updated_at',
       type: IsarType.string,
     )
@@ -75,10 +80,16 @@ int _trackEstimateSize(
   var bytesCount = offsets.last;
   bytesCount += 3 + object.album.length * 3;
   bytesCount += 3 + object.artista.length * 3;
-  bytesCount += 3 + object.cover_path.length * 3;
-  bytesCount += 3 + object.music_path.length * 3;
+  bytesCount += 3 + object.coverPath.length * 3;
+  bytesCount += 3 + object.musicPath.length * 3;
+  {
+    final value = object.remoteId;
+    if (value != null) {
+      bytesCount += 3 + value.length * 3;
+    }
+  }
   bytesCount += 3 + object.titolo.length * 3;
-  bytesCount += 3 + object.updated_at.length * 3;
+  bytesCount += 3 + object.updatedAt.length * 3;
   return bytesCount;
 }
 
@@ -90,11 +101,12 @@ void _trackSerialize(
 ) {
   writer.writeString(offsets[0], object.album);
   writer.writeString(offsets[1], object.artista);
-  writer.writeString(offsets[2], object.cover_path);
-  writer.writeLong(offsets[3], object.duration_ms);
-  writer.writeString(offsets[4], object.music_path);
-  writer.writeString(offsets[5], object.titolo);
-  writer.writeString(offsets[6], object.updated_at);
+  writer.writeString(offsets[2], object.coverPath);
+  writer.writeLong(offsets[3], object.durationMs);
+  writer.writeString(offsets[4], object.musicPath);
+  writer.writeString(offsets[5], object.remoteId);
+  writer.writeString(offsets[6], object.titolo);
+  writer.writeString(offsets[7], object.updatedAt);
 }
 
 Track _trackDeserialize(
@@ -106,12 +118,13 @@ Track _trackDeserialize(
   final object = Track();
   object.album = reader.readString(offsets[0]);
   object.artista = reader.readString(offsets[1]);
-  object.cover_path = reader.readString(offsets[2]);
-  object.duration_ms = reader.readLongOrNull(offsets[3]);
+  object.coverPath = reader.readString(offsets[2]);
+  object.durationMs = reader.readLongOrNull(offsets[3]);
   object.id = id;
-  object.music_path = reader.readString(offsets[4]);
-  object.titolo = reader.readString(offsets[5]);
-  object.updated_at = reader.readString(offsets[6]);
+  object.musicPath = reader.readString(offsets[4]);
+  object.remoteId = reader.readStringOrNull(offsets[5]);
+  object.titolo = reader.readString(offsets[6]);
+  object.updatedAt = reader.readString(offsets[7]);
   return object;
 }
 
@@ -133,8 +146,10 @@ P _trackDeserializeProp<P>(
     case 4:
       return (reader.readString(offset)) as P;
     case 5:
-      return (reader.readString(offset)) as P;
+      return (reader.readStringOrNull(offset)) as P;
     case 6:
+      return (reader.readString(offset)) as P;
+    case 7:
       return (reader.readString(offset)) as P;
     default:
       throw IsarError('Unknown property with id $propertyId');
@@ -487,7 +502,7 @@ extension TrackQueryFilter on QueryBuilder<Track, Track, QFilterCondition> {
     });
   }
 
-  QueryBuilder<Track, Track, QAfterFilterCondition> cover_pathEqualTo(
+  QueryBuilder<Track, Track, QAfterFilterCondition> coverPathEqualTo(
     String value, {
     bool caseSensitive = true,
   }) {
@@ -500,7 +515,7 @@ extension TrackQueryFilter on QueryBuilder<Track, Track, QFilterCondition> {
     });
   }
 
-  QueryBuilder<Track, Track, QAfterFilterCondition> cover_pathGreaterThan(
+  QueryBuilder<Track, Track, QAfterFilterCondition> coverPathGreaterThan(
     String value, {
     bool include = false,
     bool caseSensitive = true,
@@ -515,7 +530,7 @@ extension TrackQueryFilter on QueryBuilder<Track, Track, QFilterCondition> {
     });
   }
 
-  QueryBuilder<Track, Track, QAfterFilterCondition> cover_pathLessThan(
+  QueryBuilder<Track, Track, QAfterFilterCondition> coverPathLessThan(
     String value, {
     bool include = false,
     bool caseSensitive = true,
@@ -530,7 +545,7 @@ extension TrackQueryFilter on QueryBuilder<Track, Track, QFilterCondition> {
     });
   }
 
-  QueryBuilder<Track, Track, QAfterFilterCondition> cover_pathBetween(
+  QueryBuilder<Track, Track, QAfterFilterCondition> coverPathBetween(
     String lower,
     String upper, {
     bool includeLower = true,
@@ -549,7 +564,7 @@ extension TrackQueryFilter on QueryBuilder<Track, Track, QFilterCondition> {
     });
   }
 
-  QueryBuilder<Track, Track, QAfterFilterCondition> cover_pathStartsWith(
+  QueryBuilder<Track, Track, QAfterFilterCondition> coverPathStartsWith(
     String value, {
     bool caseSensitive = true,
   }) {
@@ -562,7 +577,7 @@ extension TrackQueryFilter on QueryBuilder<Track, Track, QFilterCondition> {
     });
   }
 
-  QueryBuilder<Track, Track, QAfterFilterCondition> cover_pathEndsWith(
+  QueryBuilder<Track, Track, QAfterFilterCondition> coverPathEndsWith(
     String value, {
     bool caseSensitive = true,
   }) {
@@ -575,7 +590,7 @@ extension TrackQueryFilter on QueryBuilder<Track, Track, QFilterCondition> {
     });
   }
 
-  QueryBuilder<Track, Track, QAfterFilterCondition> cover_pathContains(
+  QueryBuilder<Track, Track, QAfterFilterCondition> coverPathContains(
       String value,
       {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
@@ -587,7 +602,7 @@ extension TrackQueryFilter on QueryBuilder<Track, Track, QFilterCondition> {
     });
   }
 
-  QueryBuilder<Track, Track, QAfterFilterCondition> cover_pathMatches(
+  QueryBuilder<Track, Track, QAfterFilterCondition> coverPathMatches(
       String pattern,
       {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
@@ -599,7 +614,7 @@ extension TrackQueryFilter on QueryBuilder<Track, Track, QFilterCondition> {
     });
   }
 
-  QueryBuilder<Track, Track, QAfterFilterCondition> cover_pathIsEmpty() {
+  QueryBuilder<Track, Track, QAfterFilterCondition> coverPathIsEmpty() {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(FilterCondition.equalTo(
         property: r'cover_path',
@@ -608,7 +623,7 @@ extension TrackQueryFilter on QueryBuilder<Track, Track, QFilterCondition> {
     });
   }
 
-  QueryBuilder<Track, Track, QAfterFilterCondition> cover_pathIsNotEmpty() {
+  QueryBuilder<Track, Track, QAfterFilterCondition> coverPathIsNotEmpty() {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(FilterCondition.greaterThan(
         property: r'cover_path',
@@ -617,7 +632,7 @@ extension TrackQueryFilter on QueryBuilder<Track, Track, QFilterCondition> {
     });
   }
 
-  QueryBuilder<Track, Track, QAfterFilterCondition> duration_msIsNull() {
+  QueryBuilder<Track, Track, QAfterFilterCondition> durationMsIsNull() {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(const FilterCondition.isNull(
         property: r'duration_ms',
@@ -625,7 +640,7 @@ extension TrackQueryFilter on QueryBuilder<Track, Track, QFilterCondition> {
     });
   }
 
-  QueryBuilder<Track, Track, QAfterFilterCondition> duration_msIsNotNull() {
+  QueryBuilder<Track, Track, QAfterFilterCondition> durationMsIsNotNull() {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(const FilterCondition.isNotNull(
         property: r'duration_ms',
@@ -633,7 +648,7 @@ extension TrackQueryFilter on QueryBuilder<Track, Track, QFilterCondition> {
     });
   }
 
-  QueryBuilder<Track, Track, QAfterFilterCondition> duration_msEqualTo(
+  QueryBuilder<Track, Track, QAfterFilterCondition> durationMsEqualTo(
       int? value) {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(FilterCondition.equalTo(
@@ -643,7 +658,7 @@ extension TrackQueryFilter on QueryBuilder<Track, Track, QFilterCondition> {
     });
   }
 
-  QueryBuilder<Track, Track, QAfterFilterCondition> duration_msGreaterThan(
+  QueryBuilder<Track, Track, QAfterFilterCondition> durationMsGreaterThan(
     int? value, {
     bool include = false,
   }) {
@@ -656,7 +671,7 @@ extension TrackQueryFilter on QueryBuilder<Track, Track, QFilterCondition> {
     });
   }
 
-  QueryBuilder<Track, Track, QAfterFilterCondition> duration_msLessThan(
+  QueryBuilder<Track, Track, QAfterFilterCondition> durationMsLessThan(
     int? value, {
     bool include = false,
   }) {
@@ -669,7 +684,7 @@ extension TrackQueryFilter on QueryBuilder<Track, Track, QFilterCondition> {
     });
   }
 
-  QueryBuilder<Track, Track, QAfterFilterCondition> duration_msBetween(
+  QueryBuilder<Track, Track, QAfterFilterCondition> durationMsBetween(
     int? lower,
     int? upper, {
     bool includeLower = true,
@@ -738,7 +753,7 @@ extension TrackQueryFilter on QueryBuilder<Track, Track, QFilterCondition> {
     });
   }
 
-  QueryBuilder<Track, Track, QAfterFilterCondition> music_pathEqualTo(
+  QueryBuilder<Track, Track, QAfterFilterCondition> musicPathEqualTo(
     String value, {
     bool caseSensitive = true,
   }) {
@@ -751,7 +766,7 @@ extension TrackQueryFilter on QueryBuilder<Track, Track, QFilterCondition> {
     });
   }
 
-  QueryBuilder<Track, Track, QAfterFilterCondition> music_pathGreaterThan(
+  QueryBuilder<Track, Track, QAfterFilterCondition> musicPathGreaterThan(
     String value, {
     bool include = false,
     bool caseSensitive = true,
@@ -766,7 +781,7 @@ extension TrackQueryFilter on QueryBuilder<Track, Track, QFilterCondition> {
     });
   }
 
-  QueryBuilder<Track, Track, QAfterFilterCondition> music_pathLessThan(
+  QueryBuilder<Track, Track, QAfterFilterCondition> musicPathLessThan(
     String value, {
     bool include = false,
     bool caseSensitive = true,
@@ -781,7 +796,7 @@ extension TrackQueryFilter on QueryBuilder<Track, Track, QFilterCondition> {
     });
   }
 
-  QueryBuilder<Track, Track, QAfterFilterCondition> music_pathBetween(
+  QueryBuilder<Track, Track, QAfterFilterCondition> musicPathBetween(
     String lower,
     String upper, {
     bool includeLower = true,
@@ -800,7 +815,7 @@ extension TrackQueryFilter on QueryBuilder<Track, Track, QFilterCondition> {
     });
   }
 
-  QueryBuilder<Track, Track, QAfterFilterCondition> music_pathStartsWith(
+  QueryBuilder<Track, Track, QAfterFilterCondition> musicPathStartsWith(
     String value, {
     bool caseSensitive = true,
   }) {
@@ -813,7 +828,7 @@ extension TrackQueryFilter on QueryBuilder<Track, Track, QFilterCondition> {
     });
   }
 
-  QueryBuilder<Track, Track, QAfterFilterCondition> music_pathEndsWith(
+  QueryBuilder<Track, Track, QAfterFilterCondition> musicPathEndsWith(
     String value, {
     bool caseSensitive = true,
   }) {
@@ -826,7 +841,7 @@ extension TrackQueryFilter on QueryBuilder<Track, Track, QFilterCondition> {
     });
   }
 
-  QueryBuilder<Track, Track, QAfterFilterCondition> music_pathContains(
+  QueryBuilder<Track, Track, QAfterFilterCondition> musicPathContains(
       String value,
       {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
@@ -838,7 +853,7 @@ extension TrackQueryFilter on QueryBuilder<Track, Track, QFilterCondition> {
     });
   }
 
-  QueryBuilder<Track, Track, QAfterFilterCondition> music_pathMatches(
+  QueryBuilder<Track, Track, QAfterFilterCondition> musicPathMatches(
       String pattern,
       {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
@@ -850,7 +865,7 @@ extension TrackQueryFilter on QueryBuilder<Track, Track, QFilterCondition> {
     });
   }
 
-  QueryBuilder<Track, Track, QAfterFilterCondition> music_pathIsEmpty() {
+  QueryBuilder<Track, Track, QAfterFilterCondition> musicPathIsEmpty() {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(FilterCondition.equalTo(
         property: r'music_path',
@@ -859,10 +874,156 @@ extension TrackQueryFilter on QueryBuilder<Track, Track, QFilterCondition> {
     });
   }
 
-  QueryBuilder<Track, Track, QAfterFilterCondition> music_pathIsNotEmpty() {
+  QueryBuilder<Track, Track, QAfterFilterCondition> musicPathIsNotEmpty() {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(FilterCondition.greaterThan(
         property: r'music_path',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<Track, Track, QAfterFilterCondition> remoteIdIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'remoteId',
+      ));
+    });
+  }
+
+  QueryBuilder<Track, Track, QAfterFilterCondition> remoteIdIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'remoteId',
+      ));
+    });
+  }
+
+  QueryBuilder<Track, Track, QAfterFilterCondition> remoteIdEqualTo(
+    String? value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'remoteId',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Track, Track, QAfterFilterCondition> remoteIdGreaterThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'remoteId',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Track, Track, QAfterFilterCondition> remoteIdLessThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'remoteId',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Track, Track, QAfterFilterCondition> remoteIdBetween(
+    String? lower,
+    String? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'remoteId',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Track, Track, QAfterFilterCondition> remoteIdStartsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.startsWith(
+        property: r'remoteId',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Track, Track, QAfterFilterCondition> remoteIdEndsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.endsWith(
+        property: r'remoteId',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Track, Track, QAfterFilterCondition> remoteIdContains(
+      String value,
+      {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.contains(
+        property: r'remoteId',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Track, Track, QAfterFilterCondition> remoteIdMatches(
+      String pattern,
+      {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.matches(
+        property: r'remoteId',
+        wildcard: pattern,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Track, Track, QAfterFilterCondition> remoteIdIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'remoteId',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<Track, Track, QAfterFilterCondition> remoteIdIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        property: r'remoteId',
         value: '',
       ));
     });
@@ -997,7 +1158,7 @@ extension TrackQueryFilter on QueryBuilder<Track, Track, QFilterCondition> {
     });
   }
 
-  QueryBuilder<Track, Track, QAfterFilterCondition> updated_atEqualTo(
+  QueryBuilder<Track, Track, QAfterFilterCondition> updatedAtEqualTo(
     String value, {
     bool caseSensitive = true,
   }) {
@@ -1010,7 +1171,7 @@ extension TrackQueryFilter on QueryBuilder<Track, Track, QFilterCondition> {
     });
   }
 
-  QueryBuilder<Track, Track, QAfterFilterCondition> updated_atGreaterThan(
+  QueryBuilder<Track, Track, QAfterFilterCondition> updatedAtGreaterThan(
     String value, {
     bool include = false,
     bool caseSensitive = true,
@@ -1025,7 +1186,7 @@ extension TrackQueryFilter on QueryBuilder<Track, Track, QFilterCondition> {
     });
   }
 
-  QueryBuilder<Track, Track, QAfterFilterCondition> updated_atLessThan(
+  QueryBuilder<Track, Track, QAfterFilterCondition> updatedAtLessThan(
     String value, {
     bool include = false,
     bool caseSensitive = true,
@@ -1040,7 +1201,7 @@ extension TrackQueryFilter on QueryBuilder<Track, Track, QFilterCondition> {
     });
   }
 
-  QueryBuilder<Track, Track, QAfterFilterCondition> updated_atBetween(
+  QueryBuilder<Track, Track, QAfterFilterCondition> updatedAtBetween(
     String lower,
     String upper, {
     bool includeLower = true,
@@ -1059,7 +1220,7 @@ extension TrackQueryFilter on QueryBuilder<Track, Track, QFilterCondition> {
     });
   }
 
-  QueryBuilder<Track, Track, QAfterFilterCondition> updated_atStartsWith(
+  QueryBuilder<Track, Track, QAfterFilterCondition> updatedAtStartsWith(
     String value, {
     bool caseSensitive = true,
   }) {
@@ -1072,7 +1233,7 @@ extension TrackQueryFilter on QueryBuilder<Track, Track, QFilterCondition> {
     });
   }
 
-  QueryBuilder<Track, Track, QAfterFilterCondition> updated_atEndsWith(
+  QueryBuilder<Track, Track, QAfterFilterCondition> updatedAtEndsWith(
     String value, {
     bool caseSensitive = true,
   }) {
@@ -1085,7 +1246,7 @@ extension TrackQueryFilter on QueryBuilder<Track, Track, QFilterCondition> {
     });
   }
 
-  QueryBuilder<Track, Track, QAfterFilterCondition> updated_atContains(
+  QueryBuilder<Track, Track, QAfterFilterCondition> updatedAtContains(
       String value,
       {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
@@ -1097,7 +1258,7 @@ extension TrackQueryFilter on QueryBuilder<Track, Track, QFilterCondition> {
     });
   }
 
-  QueryBuilder<Track, Track, QAfterFilterCondition> updated_atMatches(
+  QueryBuilder<Track, Track, QAfterFilterCondition> updatedAtMatches(
       String pattern,
       {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
@@ -1109,7 +1270,7 @@ extension TrackQueryFilter on QueryBuilder<Track, Track, QFilterCondition> {
     });
   }
 
-  QueryBuilder<Track, Track, QAfterFilterCondition> updated_atIsEmpty() {
+  QueryBuilder<Track, Track, QAfterFilterCondition> updatedAtIsEmpty() {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(FilterCondition.equalTo(
         property: r'updated_at',
@@ -1118,7 +1279,7 @@ extension TrackQueryFilter on QueryBuilder<Track, Track, QFilterCondition> {
     });
   }
 
-  QueryBuilder<Track, Track, QAfterFilterCondition> updated_atIsNotEmpty() {
+  QueryBuilder<Track, Track, QAfterFilterCondition> updatedAtIsNotEmpty() {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(FilterCondition.greaterThan(
         property: r'updated_at',
@@ -1157,39 +1318,51 @@ extension TrackQuerySortBy on QueryBuilder<Track, Track, QSortBy> {
     });
   }
 
-  QueryBuilder<Track, Track, QAfterSortBy> sortByCover_path() {
+  QueryBuilder<Track, Track, QAfterSortBy> sortByCoverPath() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'cover_path', Sort.asc);
     });
   }
 
-  QueryBuilder<Track, Track, QAfterSortBy> sortByCover_pathDesc() {
+  QueryBuilder<Track, Track, QAfterSortBy> sortByCoverPathDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'cover_path', Sort.desc);
     });
   }
 
-  QueryBuilder<Track, Track, QAfterSortBy> sortByDuration_ms() {
+  QueryBuilder<Track, Track, QAfterSortBy> sortByDurationMs() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'duration_ms', Sort.asc);
     });
   }
 
-  QueryBuilder<Track, Track, QAfterSortBy> sortByDuration_msDesc() {
+  QueryBuilder<Track, Track, QAfterSortBy> sortByDurationMsDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'duration_ms', Sort.desc);
     });
   }
 
-  QueryBuilder<Track, Track, QAfterSortBy> sortByMusic_path() {
+  QueryBuilder<Track, Track, QAfterSortBy> sortByMusicPath() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'music_path', Sort.asc);
     });
   }
 
-  QueryBuilder<Track, Track, QAfterSortBy> sortByMusic_pathDesc() {
+  QueryBuilder<Track, Track, QAfterSortBy> sortByMusicPathDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'music_path', Sort.desc);
+    });
+  }
+
+  QueryBuilder<Track, Track, QAfterSortBy> sortByRemoteId() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'remoteId', Sort.asc);
+    });
+  }
+
+  QueryBuilder<Track, Track, QAfterSortBy> sortByRemoteIdDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'remoteId', Sort.desc);
     });
   }
 
@@ -1205,13 +1378,13 @@ extension TrackQuerySortBy on QueryBuilder<Track, Track, QSortBy> {
     });
   }
 
-  QueryBuilder<Track, Track, QAfterSortBy> sortByUpdated_at() {
+  QueryBuilder<Track, Track, QAfterSortBy> sortByUpdatedAt() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'updated_at', Sort.asc);
     });
   }
 
-  QueryBuilder<Track, Track, QAfterSortBy> sortByUpdated_atDesc() {
+  QueryBuilder<Track, Track, QAfterSortBy> sortByUpdatedAtDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'updated_at', Sort.desc);
     });
@@ -1243,25 +1416,25 @@ extension TrackQuerySortThenBy on QueryBuilder<Track, Track, QSortThenBy> {
     });
   }
 
-  QueryBuilder<Track, Track, QAfterSortBy> thenByCover_path() {
+  QueryBuilder<Track, Track, QAfterSortBy> thenByCoverPath() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'cover_path', Sort.asc);
     });
   }
 
-  QueryBuilder<Track, Track, QAfterSortBy> thenByCover_pathDesc() {
+  QueryBuilder<Track, Track, QAfterSortBy> thenByCoverPathDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'cover_path', Sort.desc);
     });
   }
 
-  QueryBuilder<Track, Track, QAfterSortBy> thenByDuration_ms() {
+  QueryBuilder<Track, Track, QAfterSortBy> thenByDurationMs() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'duration_ms', Sort.asc);
     });
   }
 
-  QueryBuilder<Track, Track, QAfterSortBy> thenByDuration_msDesc() {
+  QueryBuilder<Track, Track, QAfterSortBy> thenByDurationMsDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'duration_ms', Sort.desc);
     });
@@ -1279,15 +1452,27 @@ extension TrackQuerySortThenBy on QueryBuilder<Track, Track, QSortThenBy> {
     });
   }
 
-  QueryBuilder<Track, Track, QAfterSortBy> thenByMusic_path() {
+  QueryBuilder<Track, Track, QAfterSortBy> thenByMusicPath() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'music_path', Sort.asc);
     });
   }
 
-  QueryBuilder<Track, Track, QAfterSortBy> thenByMusic_pathDesc() {
+  QueryBuilder<Track, Track, QAfterSortBy> thenByMusicPathDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'music_path', Sort.desc);
+    });
+  }
+
+  QueryBuilder<Track, Track, QAfterSortBy> thenByRemoteId() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'remoteId', Sort.asc);
+    });
+  }
+
+  QueryBuilder<Track, Track, QAfterSortBy> thenByRemoteIdDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'remoteId', Sort.desc);
     });
   }
 
@@ -1303,13 +1488,13 @@ extension TrackQuerySortThenBy on QueryBuilder<Track, Track, QSortThenBy> {
     });
   }
 
-  QueryBuilder<Track, Track, QAfterSortBy> thenByUpdated_at() {
+  QueryBuilder<Track, Track, QAfterSortBy> thenByUpdatedAt() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'updated_at', Sort.asc);
     });
   }
 
-  QueryBuilder<Track, Track, QAfterSortBy> thenByUpdated_atDesc() {
+  QueryBuilder<Track, Track, QAfterSortBy> thenByUpdatedAtDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'updated_at', Sort.desc);
     });
@@ -1331,23 +1516,30 @@ extension TrackQueryWhereDistinct on QueryBuilder<Track, Track, QDistinct> {
     });
   }
 
-  QueryBuilder<Track, Track, QDistinct> distinctByCover_path(
+  QueryBuilder<Track, Track, QDistinct> distinctByCoverPath(
       {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'cover_path', caseSensitive: caseSensitive);
     });
   }
 
-  QueryBuilder<Track, Track, QDistinct> distinctByDuration_ms() {
+  QueryBuilder<Track, Track, QDistinct> distinctByDurationMs() {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'duration_ms');
     });
   }
 
-  QueryBuilder<Track, Track, QDistinct> distinctByMusic_path(
+  QueryBuilder<Track, Track, QDistinct> distinctByMusicPath(
       {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'music_path', caseSensitive: caseSensitive);
+    });
+  }
+
+  QueryBuilder<Track, Track, QDistinct> distinctByRemoteId(
+      {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'remoteId', caseSensitive: caseSensitive);
     });
   }
 
@@ -1358,7 +1550,7 @@ extension TrackQueryWhereDistinct on QueryBuilder<Track, Track, QDistinct> {
     });
   }
 
-  QueryBuilder<Track, Track, QDistinct> distinctByUpdated_at(
+  QueryBuilder<Track, Track, QDistinct> distinctByUpdatedAt(
       {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'updated_at', caseSensitive: caseSensitive);
@@ -1385,21 +1577,27 @@ extension TrackQueryProperty on QueryBuilder<Track, Track, QQueryProperty> {
     });
   }
 
-  QueryBuilder<Track, String, QQueryOperations> cover_pathProperty() {
+  QueryBuilder<Track, String, QQueryOperations> coverPathProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'cover_path');
     });
   }
 
-  QueryBuilder<Track, int?, QQueryOperations> duration_msProperty() {
+  QueryBuilder<Track, int?, QQueryOperations> durationMsProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'duration_ms');
     });
   }
 
-  QueryBuilder<Track, String, QQueryOperations> music_pathProperty() {
+  QueryBuilder<Track, String, QQueryOperations> musicPathProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'music_path');
+    });
+  }
+
+  QueryBuilder<Track, String?, QQueryOperations> remoteIdProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'remoteId');
     });
   }
 
@@ -1409,7 +1607,7 @@ extension TrackQueryProperty on QueryBuilder<Track, Track, QQueryProperty> {
     });
   }
 
-  QueryBuilder<Track, String, QQueryOperations> updated_atProperty() {
+  QueryBuilder<Track, String, QQueryOperations> updatedAtProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'updated_at');
     });

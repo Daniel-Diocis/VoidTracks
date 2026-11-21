@@ -12,10 +12,11 @@ dependencies:
     sdk: flutter
   cupertino_icons: ^1.0.2
   just_audio: ^0.9.34
-  just_audio_background: ^0.0.1-beta.15
+  audio_service: ^0.18.18
   audio_session: ^0.1.15
   isar: ^3.1.0
   isar_flutter_libs: ^3.1.0 # solo per Android/iOS
+  shared_preferences: ^2.5.3
   http: ^1.5.0
   path_provider: ^2.1.1
   supabase_flutter: ^2.8.4
@@ -38,6 +39,4 @@ flutter:
   uses-material-design: true
   assets:
     - assets/images/icon.png
-    - assets/images/
-    - assets/audio/
     - assets/.env
