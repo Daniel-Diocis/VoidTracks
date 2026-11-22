@@ -1,6 +1,7 @@
 class Song {
   const Song({
     required this.id,
+    this.remoteId,
     required this.title,
     required this.artist,
     required this.album,
@@ -10,6 +11,8 @@ class Song {
   });
 
   final String id;
+  final String? remoteId;
+  String get libraryId => remoteId ?? id;
   final String title;
   final String artist;
   final String album;

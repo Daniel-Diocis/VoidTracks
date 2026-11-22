@@ -9,11 +9,13 @@ class DownloadsScreen extends StatelessWidget {
     super.key,
     required this.downloads,
     required this.onSelect,
+    required this.onSongMenu,
     required this.onOpenSettings,
     this.currentId,
   });
   final Downloads downloads;
   final void Function(List<Song>, Song) onSelect;
+  final ValueChanged<Song> onSongMenu;
   final VoidCallback onOpenSettings;
   final String? currentId;
 
@@ -67,13 +69,9 @@ class DownloadsScreen extends StatelessWidget {
             songs: downloads.songs,
             emptyMessage: 'I brani che scarichi appariranno qui.',
             onSelect: onSelect,
+            onSongMenu: onSongMenu,
             currentId: currentId,
-            action:
-                (song) => IconButton(
-                  icon: const Icon(Icons.delete_outline),
-                  tooltip: 'Rimuovi download',
-                  onPressed: () => _remove(context, song),
-                ),
+            onRemoveDownload: (song) => _remove(context, song),
           ),
     ),
   );

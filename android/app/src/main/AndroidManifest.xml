@@ -7,7 +7,7 @@
     <!-- Necessario se si utilizza SDK 34 o superiore -->
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK"/>
     <application
-        android:label="Void Tracks"
+        android:label="VoidTracks"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
         <activity

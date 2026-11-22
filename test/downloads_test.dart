@@ -7,6 +7,8 @@ import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:isar/isar.dart';
 import 'package:void_tracks/data/downloads.dart';
+import 'package:void_tracks/data/playlists.dart';
+import 'package:void_tracks/models/playlist.dart';
 import 'package:void_tracks/models/song.dart';
 import 'package:void_tracks/models/track.dart';
 
@@ -70,6 +72,120 @@ void main() {
     await db.close();
     await dir.delete(recursive: true);
   });
+
+  test(
+    'Preferiti protetti, identità cloud/offline e copertina persistente',
+    () async {
+      await db.close();
+      db = await Isar.open(
+        [TrackSchema, PlaylistSchema],
+        directory: dir.path,
+        inspector: false,
+      );
+      final store = Playlists(db);
+      final userId = await store.create(
+        'Brani preferiti',
+      ); // An existing user playlist may share the label.
+      await Future.wait([store.initialize(), store.initialize()]);
+      expect((await store.watch().first).length, 2);
+      final remote = cloud('1');
+      final local = Song(
+        id: 'local:9',
+        remoteId: remote.id,
+        title: remote.title,
+        artist: remote.artist,
+        album: '',
+        updatedAt: '1',
+        audio: Uri.file('/audio.mp3'),
+        cover: Uri.file('/cover.jpg'),
+      );
+      final library = PlaylistLibrary([remote], [local]);
+      await store.setFavorite(remote, library, selected: true);
+      await store.add(Playlist.favoritesId, [local], library);
+      expect(
+        (await store.watchFavorites().first)!.entries.single.songId,
+        remote.id,
+      );
+      await store.setFavorite(local, library, selected: false);
+      expect((await store.watchFavorites().first)!.entries, isEmpty);
+      await expectLater(store.delete(Playlist.favoritesId), throwsStateError);
+      await expectLater(
+        store.rename(Playlist.favoritesId, 'Altro'),
+        throwsStateError,
+      );
+      await store.setCover(userId, [1, 2, 3]);
+      await db.close();
+      db = await Isar.open(
+        [TrackSchema, PlaylistSchema],
+        directory: dir.path,
+        inspector: false,
+      );
+      expect((await db.playlists.get(userId))!.coverBytes, [1, 2, 3]);
+      expect(
+        (await db.playlists.get(Playlist.favoritesId))!.isFavorites,
+        isTrue,
+      );
+    },
+  );
+
+  test(
+    'Le playlist preservano i download esistenti, identità e ordine al riavvio',
+    () async {
+      final first = cloud('1');
+      await downloads.save(first);
+      final local = downloads.songs.single;
+      expect(local.libraryId, first.id);
+
+      // Open the same device database with the additional collection.
+      await db.close();
+      db = await Isar.open(
+        [TrackSchema, PlaylistSchema],
+        directory: dir.path,
+        inspector: false,
+      );
+      expect(await db.tracks.count(), 1);
+      var store = Playlists(db);
+      final second = Song(
+        id: 'uuid-b',
+        title: 'B',
+        artist: 'Artista',
+        album: '',
+        audio: Uri.https('music.example', 'B.mp3'),
+        cover: first.cover,
+        updatedAt: '1',
+      );
+      final library = PlaylistLibrary([first, second], [local]);
+      expect(library.songs, [local, second]);
+      final id = await store.create('  Viaggio  ', firstSong: first);
+      await Future.wait([
+        store.add(id, [local], library),
+        store.add(id, [second], library),
+      ]);
+      await store.move(id, second.id, first.id);
+      await store.rename(id, 'In viaggio');
+      await db.close();
+      db = await Isar.open(
+        [TrackSchema, PlaylistSchema],
+        directory: dir.path,
+        inspector: false,
+      );
+      store = Playlists(db);
+      final saved = (await store.watch().first).single;
+      expect(saved.name, 'In viaggio');
+      expect(saved.entries.map((e) => e.songId), [second.id, first.id]);
+      expect(PlaylistLibrary([], [local]).find(first.id), local);
+      expect(PlaylistLibrary([first], []).find(first.id), first);
+      await store.remove(id, second.id);
+      expect(
+        (await store.watch().first).single.entries.single.songId,
+        first.id,
+      );
+      await store.delete(id);
+      expect(await store.watch().first, isEmpty);
+      expect(await db.tracks.count(), 1);
+      expect(await File.fromUri(local.audio).exists(), isTrue);
+    },
+  );
 
   test(
     'Il riavvio recupera i download interrotti e permette di riparare una copia incompleta',

@@ -10,12 +10,14 @@ class CatalogScreen extends StatefulWidget {
     required this.load,
     required this.downloads,
     required this.onSelect,
+    required this.onSongMenu,
     required this.onOpenSettings,
     this.currentId,
   });
   final Future<List<Song>> Function() load;
   final Downloads downloads;
   final void Function(List<Song>, Song) onSelect;
+  final ValueChanged<Song> onSongMenu;
   final VoidCallback onOpenSettings;
   final String? currentId;
 
@@ -25,7 +27,6 @@ class CatalogScreen extends StatefulWidget {
 
 class _CatalogScreenState extends State<CatalogScreen> {
   List<Song> _songs = [];
-  final _saving = <String>{};
   bool _loading = false;
   bool _failed = false;
 
@@ -50,24 +51,6 @@ class _CatalogScreenState extends State<CatalogScreen> {
       if (mounted) setState(() => _failed = true);
     } finally {
       if (mounted) setState(() => _loading = false);
-    }
-  }
-
-  Future<void> _save(Song song) async {
-    if (_saving.contains(song.id)) return;
-    setState(() => _saving.add(song.id));
-    try {
-      await widget.downloads.save(song);
-    } catch (_) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Download di “${song.title}” fallito. Riprova.'),
-          ),
-        );
-      }
-    } finally {
-      if (mounted) setState(() => _saving.remove(song.id));
     }
   }
 
@@ -103,46 +86,12 @@ class _CatalogScreenState extends State<CatalogScreen> {
           child:
               _songs.isEmpty && (_loading || _failed)
                   ? const SizedBox.shrink()
-                  : ListenableBuilder(
-                    listenable: widget.downloads,
-                    builder:
-                        (_, __) => SongList(
-                          songs: _songs,
-                          emptyMessage: 'Il catalogo è vuoto',
-                          onSelect: widget.onSelect,
-                          currentId: widget.currentId,
-                          action: (song) {
-                            if (_saving.contains(song.id)) {
-                              return const SizedBox.square(
-                                dimension: 24,
-                                child: CircularProgressIndicator(),
-                              );
-                            }
-                            final status = widget.downloads.status(song);
-                            final (label, icon) = switch (status) {
-                              DownloadStatus.available => (
-                                'Scarica',
-                                Icons.download,
-                              ),
-                              DownloadStatus.update => (
-                                'Aggiorna download',
-                                Icons.system_update_alt,
-                              ),
-                              DownloadStatus.saved => (
-                                'Salvato offline',
-                                Icons.offline_pin,
-                              ),
-                            };
-                            return IconButton(
-                              tooltip: label,
-                              icon: Icon(icon),
-                              onPressed:
-                                  status == DownloadStatus.saved
-                                      ? null
-                                      : () => _save(song),
-                            );
-                          },
-                        ),
+                  : SongList(
+                    songs: _songs,
+                    emptyMessage: 'Il catalogo è vuoto',
+                    onSelect: widget.onSelect,
+                    onSongMenu: widget.onSongMenu,
+                    currentId: widget.currentId,
                   ),
         ),
       ],

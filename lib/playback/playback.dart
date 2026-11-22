@@ -10,6 +10,7 @@ class Playback extends BaseAudioHandler with SeekHandler {
   final _errors = StreamController<Object>.broadcast();
   Stream<Object> get errors => _errors.stream;
   List<Song> _queue = [];
+  Song? queuedSong(String id) => _queue.where((s) => s.id == id).firstOrNull;
   Future<void> _pending = Future.value();
   final _subscriptions = <StreamSubscription<dynamic>>[];
 
@@ -166,11 +167,14 @@ class Playback extends BaseAudioHandler with SeekHandler {
   }
 
   Future<void> refreshDownloads(List<Song> downloads) => _command(() async {
-    if (_queue.isEmpty || _queue.first.audio.scheme != 'file') return;
+    if (!_queue.any((s) => s.audio.scheme == 'file')) return;
     final byId = {for (final s in downloads) s.id: s};
     final updated = [
       for (final s in _queue)
-        if (byId.containsKey(s.id)) byId[s.id]!,
+        if (s.audio.scheme != 'file')
+          s
+        else if (byId.containsKey(s.id))
+          byId[s.id]!,
     ];
     if (_sameQueue(updated)) return;
     if (updated.isEmpty) {
