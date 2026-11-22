@@ -166,11 +166,14 @@ class Playback extends BaseAudioHandler with SeekHandler {
   }
 
   Future<void> refreshDownloads(List<Song> downloads) => _command(() async {
-    if (_queue.isEmpty || _queue.first.audio.scheme != 'file') return;
+    if (!_queue.any((s) => s.audio.scheme == 'file')) return;
     final byId = {for (final s in downloads) s.id: s};
     final updated = [
       for (final s in _queue)
-        if (byId.containsKey(s.id)) byId[s.id]!,
+        if (s.audio.scheme != 'file')
+          s
+        else if (byId.containsKey(s.id))
+          byId[s.id]!,
     ];
     if (_sameQueue(updated)) return;
     if (updated.isEmpty) {

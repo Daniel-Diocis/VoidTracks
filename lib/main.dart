@@ -11,6 +11,8 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'app.dart';
 import 'data/catalog.dart';
 import 'data/downloads.dart';
+import 'data/playlists.dart';
+import 'models/playlist.dart';
 import 'models/track.dart';
 import 'playback/playback.dart';
 import 'settings/theme_preference.dart';
@@ -23,7 +25,10 @@ Future<void> main() async {
     anonKey: dotenv.get('SUPABASE_ANON_KEY'),
   );
   final documents = await getApplicationDocumentsDirectory();
-  final db = await Isar.open([TrackSchema], directory: documents.path);
+  final db = await Isar.open([
+    TrackSchema,
+    PlaylistSchema,
+  ], directory: documents.path);
   final downloads = Downloads(db, documents, http.Client());
   await downloads.initialize();
   final playback = await AudioService.init(
@@ -47,6 +52,7 @@ Future<void> main() async {
     VoidTracksApp(
       catalog: catalog,
       downloads: downloads,
+      playlists: Playlists(db),
       playback: playback,
       themePreference: ThemePreference(await SharedPreferences.getInstance()),
     ),

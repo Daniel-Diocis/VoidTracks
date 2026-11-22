@@ -9,6 +9,7 @@ class SongList extends StatefulWidget {
     required this.songs,
     required this.emptyMessage,
     required this.onSelect,
+    this.onAddToPlaylist,
     required this.action,
     this.currentId,
   });
@@ -16,6 +17,7 @@ class SongList extends StatefulWidget {
   final String emptyMessage;
   final String? currentId;
   final void Function(List<Song>, Song) onSelect;
+  final ValueChanged<Song>? onAddToPlaylist;
   final Widget Function(Song) action;
 
   @override
@@ -69,6 +71,10 @@ class _SongListState extends State<SongList> {
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                         ),
+                        onLongPress:
+                            widget.onAddToPlaylist == null
+                                ? null
+                                : () => widget.onAddToPlaylist!(song),
                         onTap: () => widget.onSelect(visible, song),
                         trailing: widget.action(song),
                       );

@@ -21,6 +21,9 @@ class Downloads extends ChangeNotifier {
 
   List<Song> get songs => _songs;
   final _incomplete = <int>{};
+  Iterable<Song> get playableSongs => _songs.where(
+    (song) => !_incomplete.contains(int.parse(song.id.substring(6))),
+  );
 
   DownloadStatus status(Song song) {
     final row = _byRemoteId[song.id];
@@ -104,6 +107,7 @@ class Downloads extends ChangeNotifier {
           .map(
             (row) => Song(
               id: 'local:${row.id}',
+              remoteId: row.remoteId,
               title: row.titolo,
               artist: row.artista,
               album: row.album,

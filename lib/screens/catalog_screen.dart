@@ -10,12 +10,14 @@ class CatalogScreen extends StatefulWidget {
     required this.load,
     required this.downloads,
     required this.onSelect,
+    this.onAddToPlaylist,
     required this.onOpenSettings,
     this.currentId,
   });
   final Future<List<Song>> Function() load;
   final Downloads downloads;
   final void Function(List<Song>, Song) onSelect;
+  final ValueChanged<Song>? onAddToPlaylist;
   final VoidCallback onOpenSettings;
   final String? currentId;
 
@@ -110,6 +112,7 @@ class _CatalogScreenState extends State<CatalogScreen> {
                           songs: _songs,
                           emptyMessage: 'Il catalogo è vuoto',
                           onSelect: widget.onSelect,
+                          onAddToPlaylist: widget.onAddToPlaylist,
                           currentId: widget.currentId,
                           action: (song) {
                             if (_saving.contains(song.id)) {

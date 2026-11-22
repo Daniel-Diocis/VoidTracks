@@ -4,6 +4,10 @@ import 'package:flutter/material.dart';
 
 import 'data/catalog.dart';
 import 'data/downloads.dart';
+import 'data/playlists.dart';
+import 'models/song.dart';
+import 'screens/playlists_screen.dart';
+import 'widgets/playlist_dialogs.dart';
 import 'playback/playback.dart';
 import 'screens/catalog_screen.dart';
 import 'screens/downloads_screen.dart';
@@ -16,11 +20,13 @@ class VoidTracksApp extends StatefulWidget {
   const VoidTracksApp({
     super.key,
     required this.catalog,
+    required this.playlists,
     required this.downloads,
     required this.playback,
     required this.themePreference,
   });
   final Catalog catalog;
+  final Playlists playlists;
   final Downloads downloads;
   final Playback playback;
   final ThemePreference themePreference;
@@ -31,12 +37,15 @@ class VoidTracksApp extends StatefulWidget {
 
 class _VoidTracksAppState extends State<VoidTracksApp> {
   int _tab = 0;
+  List<Song> _catalog = [];
+  late PlaylistLibrary _library;
   final _messenger = GlobalKey<ScaffoldMessengerState>();
   late final StreamSubscription<Object> _errors;
 
   @override
   void initState() {
     super.initState();
+    _library = PlaylistLibrary(_catalog, widget.downloads.playableSongs);
     widget.downloads.addListener(_downloadsChanged);
     _errors = widget.playback.errors.listen((error) {
       debugPrint('Riproduzione: $error');
@@ -46,8 +55,24 @@ class _VoidTracksAppState extends State<VoidTracksApp> {
     });
   }
 
-  void _downloadsChanged() =>
-      widget.playback.refreshDownloads(widget.downloads.songs);
+  void _downloadsChanged() {
+    setState(
+      () =>
+          _library = PlaylistLibrary(_catalog, widget.downloads.playableSongs),
+    );
+    widget.playback.refreshDownloads(widget.downloads.songs);
+  }
+
+  Future<List<Song>> _loadCatalog() async {
+    final songs = await widget.catalog.load();
+    if (mounted) {
+      setState(() {
+        _catalog = songs;
+        _library = PlaylistLibrary(songs, widget.downloads.playableSongs);
+      });
+    }
+    return songs;
+  }
 
   @override
   void dispose() {
@@ -82,9 +107,16 @@ class _VoidTracksAppState extends State<VoidTracksApp> {
                   index: _tab,
                   children: [
                     CatalogScreen(
-                      load: widget.catalog.load,
+                      load: _loadCatalog,
                       downloads: widget.downloads,
                       onSelect: playback.select,
+                      onAddToPlaylist:
+                          (song) => addSongToPlaylist(
+                            context,
+                            song,
+                            widget.playlists,
+                            _library,
+                          ),
                       onOpenSettings:
                           () => Navigator.of(context).push(
                             MaterialPageRoute(
@@ -97,6 +129,13 @@ class _VoidTracksAppState extends State<VoidTracksApp> {
                     DownloadsScreen(
                       downloads: widget.downloads,
                       onSelect: playback.select,
+                      onAddToPlaylist:
+                          (song) => addSongToPlaylist(
+                            context,
+                            song,
+                            widget.playlists,
+                            _library,
+                          ),
                       onOpenSettings:
                           () => Navigator.of(context).push(
                             MaterialPageRoute(
@@ -104,6 +143,13 @@ class _VoidTracksAppState extends State<VoidTracksApp> {
                                   (_) => SettingsScreen(widget.themePreference),
                             ),
                           ),
+                      currentId: item?.id,
+                    ),
+                    PlaylistsScreen(
+                      store: widget.playlists,
+                      library: _library,
+                      onSelect: playback.select,
+                      active: _tab == 2,
                       currentId: item?.id,
                     ),
                   ],
@@ -127,6 +173,10 @@ class _VoidTracksAppState extends State<VoidTracksApp> {
                       NavigationDestination(
                         icon: Icon(Icons.download_for_offline_outlined),
                         label: 'Download',
+                      ),
+                      NavigationDestination(
+                        icon: Icon(Icons.queue_music),
+                        label: 'Playlist',
                       ),
                     ],
                   ),
