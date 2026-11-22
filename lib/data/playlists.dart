@@ -22,6 +22,38 @@ class Playlists {
   Playlists(this.db);
   final Isar db;
 
+  Future<void> initialize() => db.writeTxn(() async {
+    if (await db.playlists.get(Playlist.favoritesId) == null) {
+      await db.playlists.put(
+        Playlist()
+          ..id = Playlist.favoritesId
+          ..name = 'Brani preferiti',
+      );
+    }
+  });
+
+  Stream<Playlist?> watchFavorites() =>
+      db.playlists.watchObject(Playlist.favoritesId, fireImmediately: true);
+
+  Future<void> setFavorite(
+    Song song,
+    PlaylistLibrary library, {
+    required bool selected,
+  }) => _edit(Playlist.favoritesId, (playlist) {
+    final remaining =
+        playlist.entries
+            .where((e) => library.canonicalId(e.songId) != song.libraryId)
+            .toList();
+    if (selected && remaining.length == playlist.entries.length) {
+      playlist.entries = [...remaining, PlaylistEntry.fromSong(song)];
+    } else if (!selected) {
+      playlist.entries = remaining;
+    }
+  });
+
+  Future<void> setCover(int id, List<int> bytes) =>
+      _edit(id, (p) => p.coverBytes = bytes);
+
   Stream<List<Playlist>> watch() =>
       db.playlists.where().watch(fireImmediately: true);
 
@@ -47,9 +79,12 @@ class Playlists {
         await db.playlists.put(playlist);
       });
 
-  Future<void> rename(int id, String name) =>
-      _edit(id, (p) => p.name = _name(name));
+  Future<void> rename(int id, String name) => _edit(id, (p) {
+    if (p.isFavorites) throw StateError('Playlist predefinita');
+    p.name = _name(name);
+  });
   Future<void> delete(int id) => db.writeTxn(() async {
+    if (id == Playlist.favoritesId) throw StateError('Playlist predefinita');
     await db.playlists.delete(id);
   });
 

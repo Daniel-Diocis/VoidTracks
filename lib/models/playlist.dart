@@ -6,8 +6,13 @@ part 'playlist.g.dart';
 
 @collection
 class Playlist {
+  static const favoritesId = -1;
   Id id = Isar.autoIncrement;
   late String name;
+  List<byte>? coverBytes;
+
+  @ignore
+  bool get isFavorites => id == favoritesId;
   List<PlaylistEntry> entries = [];
 }
 

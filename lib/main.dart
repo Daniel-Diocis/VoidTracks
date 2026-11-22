@@ -29,6 +29,8 @@ Future<void> main() async {
     TrackSchema,
     PlaylistSchema,
   ], directory: documents.path);
+  final playlists = Playlists(db);
+  await playlists.initialize();
   final downloads = Downloads(db, documents, http.Client());
   await downloads.initialize();
   final playback = await AudioService.init(
@@ -52,7 +54,7 @@ Future<void> main() async {
     VoidTracksApp(
       catalog: catalog,
       downloads: downloads,
-      playlists: Playlists(db),
+      playlists: playlists,
       playback: playback,
       themePreference: ThemePreference(await SharedPreferences.getInstance()),
     ),

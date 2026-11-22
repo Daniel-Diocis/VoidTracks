@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
@@ -35,5 +36,28 @@ class Artwork extends StatelessWidget {
                 ),
       ),
     );
+  }
+}
+
+Future<ImageInfo> loadArtwork(ImageProvider provider) async {
+  final stream = provider.resolve(ImageConfiguration.empty);
+  final loaded = Completer<ImageInfo>();
+  final listener = ImageStreamListener(
+    (info, _) {
+      if (loaded.isCompleted) {
+        info.dispose();
+      } else {
+        loaded.complete(info);
+      }
+    },
+    onError: (Object error, StackTrace? trace) {
+      if (!loaded.isCompleted) loaded.completeError(error, trace);
+    },
+  );
+  try {
+    stream.addListener(listener);
+    return await loaded.future.timeout(const Duration(seconds: 8));
+  } finally {
+    stream.removeListener(listener);
   }
 }

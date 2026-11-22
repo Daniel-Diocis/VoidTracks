@@ -7,7 +7,7 @@ import 'data/downloads.dart';
 import 'data/playlists.dart';
 import 'models/song.dart';
 import 'screens/playlists_screen.dart';
-import 'widgets/playlist_dialogs.dart';
+import 'widgets/song_menu.dart';
 import 'playback/playback.dart';
 import 'screens/catalog_screen.dart';
 import 'screens/downloads_screen.dart';
@@ -74,6 +74,21 @@ class _VoidTracksAppState extends State<VoidTracksApp> {
     return songs;
   }
 
+  void _songMenu(BuildContext context, Song song) {
+    final cloud =
+        song.audio.scheme == 'file'
+            ? _catalog.where((s) => s.id == song.libraryId).firstOrNull
+            : song;
+    showSongMenu(
+      context,
+      song,
+      playlists: widget.playlists,
+      library: _library,
+      downloads: widget.downloads,
+      cloudSong: cloud,
+    );
+  }
+
   @override
   void dispose() {
     widget.downloads.removeListener(_downloadsChanged);
@@ -110,13 +125,7 @@ class _VoidTracksAppState extends State<VoidTracksApp> {
                       load: _loadCatalog,
                       downloads: widget.downloads,
                       onSelect: playback.select,
-                      onAddToPlaylist:
-                          (song) => addSongToPlaylist(
-                            context,
-                            song,
-                            widget.playlists,
-                            _library,
-                          ),
+                      onSongMenu: (song) => _songMenu(context, song),
                       onOpenSettings:
                           () => Navigator.of(context).push(
                             MaterialPageRoute(
@@ -129,13 +138,7 @@ class _VoidTracksAppState extends State<VoidTracksApp> {
                     DownloadsScreen(
                       downloads: widget.downloads,
                       onSelect: playback.select,
-                      onAddToPlaylist:
-                          (song) => addSongToPlaylist(
-                            context,
-                            song,
-                            widget.playlists,
-                            _library,
-                          ),
+                      onSongMenu: (song) => _songMenu(context, song),
                       onOpenSettings:
                           () => Navigator.of(context).push(
                             MaterialPageRoute(
@@ -160,7 +163,16 @@ class _VoidTracksAppState extends State<VoidTracksApp> {
                 children: [
                   MiniPlayer(
                     playback,
-                    onOpen: () => NowPlayingScreen.show(context, playback),
+                    onOpen:
+                        () => NowPlayingScreen.show(
+                          context,
+                          playback,
+                          onSongMenu: (id) {
+                            final song =
+                                playback.queuedSong(id) ?? _library.find(id);
+                            if (song != null) _songMenu(context, song);
+                          },
+                        ),
                   ),
                   NavigationBar(
                     selectedIndex: _tab,

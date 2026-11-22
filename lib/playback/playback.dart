@@ -10,6 +10,7 @@ class Playback extends BaseAudioHandler with SeekHandler {
   final _errors = StreamController<Object>.broadcast();
   Stream<Object> get errors => _errors.stream;
   List<Song> _queue = [];
+  Song? queuedSong(String id) => _queue.where((s) => s.id == id).firstOrNull;
   Future<void> _pending = Future.value();
   final _subscriptions = <StreamSubscription<dynamic>>[];
 

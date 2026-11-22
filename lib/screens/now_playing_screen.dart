@@ -11,23 +11,27 @@ import '../widgets/cover_color.dart';
 import '../widgets/player_controls.dart';
 
 class NowPlayingScreen extends StatefulWidget {
-  const NowPlayingScreen._(this.playback);
+  const NowPlayingScreen._(this.playback, this.onSongMenu);
+  final ValueChanged<String>? onSongMenu;
   final Playback playback;
 
-  static Future<void> show(BuildContext context, Playback playback) =>
-      showModalBottomSheet<void>(
-        context: context,
-        isScrollControlled: true,
-        enableDrag: false,
-        constraints: const BoxConstraints(maxWidth: double.infinity),
-        backgroundColor: Colors.transparent,
-        showDragHandle: false,
-        builder:
-            (context) => MediaQuery.fromView(
-              view: View.of(context),
-              child: NowPlayingScreen._(playback),
-            ),
-      );
+  static Future<void> show(
+    BuildContext context,
+    Playback playback, {
+    ValueChanged<String>? onSongMenu,
+  }) => showModalBottomSheet<void>(
+    context: context,
+    isScrollControlled: true,
+    enableDrag: false,
+    constraints: const BoxConstraints(maxWidth: double.infinity),
+    backgroundColor: Colors.transparent,
+    showDragHandle: false,
+    builder:
+        (context) => MediaQuery.fromView(
+          view: View.of(context),
+          child: NowPlayingScreen._(playback, onSongMenu),
+        ),
+  );
 
   @override
   State<NowPlayingScreen> createState() => _NowPlayingScreenState();
@@ -88,6 +92,7 @@ class _NowPlayingScreenState extends State<NowPlayingScreen> {
         item: item,
         playback: widget.playback,
         scrollController: _scroll,
+        onSongMenu: widget.onSongMenu,
       );
     }),
   );
@@ -110,9 +115,11 @@ class _TrackView extends StatefulWidget {
     required this.item,
     required this.playback,
     required this.scrollController,
+    required this.onSongMenu,
   });
   final MediaItem item;
   final ScrollController scrollController;
+  final ValueChanged<String>? onSongMenu;
   final Playback playback;
 
   @override
@@ -142,6 +149,14 @@ class _TrackViewState extends State<_TrackView> {
               leading: const _CollapseButton(),
               title: const Text('In riproduzione'),
               centerTitle: true,
+              actions: [
+                if (widget.onSongMenu != null)
+                  IconButton(
+                    tooltip: 'Opzioni brano',
+                    icon: const Icon(Icons.more_vert),
+                    onPressed: () => widget.onSongMenu!(widget.item.id),
+                  ),
+              ],
               backgroundColor: Colors.transparent,
               foregroundColor: Colors.white,
               elevation: 0,

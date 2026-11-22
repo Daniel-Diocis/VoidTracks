@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../data/playlists.dart';
 import '../models/playlist.dart';
 import '../models/song.dart';
+import 'playlist_cover.dart';
 
 Future<String?> playlistName(BuildContext context, {String? initial}) {
   var name = initial ?? '';
@@ -64,10 +65,11 @@ Future<void> addSongToPlaylist(
   Playlists store,
   PlaylistLibrary library,
 ) async {
-  // Isar auto-incremented IDs are positive.
+  // Zero selects the create action; persisted playlists use other IDs.
   final selected = await showModalBottomSheet<int>(
     context: context,
     useSafeArea: true,
+    showDragHandle: true,
     builder:
         (ctx) => StreamBuilder<List<Playlist>>(
           stream: store.watch(),
@@ -77,13 +79,17 @@ Future<void> addSongToPlaylist(
                 children: [
                   ListTile(
                     title: Text(
-                      'Aggiungi a playlist',
+                      'Salva in una playlist',
                       style: Theme.of(ctx).textTheme.titleLarge,
                     ),
                     subtitle: Text(song.title),
                   ),
+                  const Divider(),
                   ListTile(
-                    leading: const Icon(Icons.add),
+                    leading: const SizedBox.square(
+                      dimension: 48,
+                      child: Icon(Icons.add),
+                    ),
                     title: const Text('Nuova playlist'),
                     onTap: () => Navigator.pop(ctx, 0),
                   ),
@@ -98,11 +104,20 @@ Future<void> addSongToPlaylist(
                         );
                         return ListTile(
                           title: Text(p.name),
-                          leading: Icon(
-                            added ? Icons.check : Icons.queue_music,
-                          ),
+                          leading: PlaylistCover(p),
                           enabled: !added,
-                          subtitle: added ? const Text('Già presente') : null,
+                          subtitle: Text(
+                            p.entries.length == 1
+                                ? '1 brano'
+                                : '${p.entries.length} brani',
+                          ),
+                          trailing:
+                              added
+                                  ? const Icon(
+                                    Icons.check,
+                                    semanticLabel: 'Già presente',
+                                  )
+                                  : null,
                           onTap: () => Navigator.pop(ctx, p.id),
                         );
                       },

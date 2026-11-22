@@ -4,6 +4,8 @@ import '../data/playlists.dart';
 import '../models/playlist.dart';
 import '../models/song.dart';
 import '../widgets/artwork.dart';
+import '../widgets/playlist_cover.dart';
+import '../widgets/swipe_remove.dart';
 import '../widgets/playlist_dialogs.dart';
 
 class PlaylistsScreen extends StatefulWidget {
@@ -39,6 +41,21 @@ class _PlaylistsScreenState extends State<PlaylistsScreen> {
   }
 
   Future<void> _menu(Playlist playlist, String action) async {
+    if (action == 'cover') {
+      final bytes = await Navigator.push<List<int>>(
+        context,
+        MaterialPageRoute(
+          builder: (_) => PlaylistCoverPicker(widget.library.songs),
+        ),
+      );
+      if (bytes != null && mounted) {
+        await editPlaylist(
+          context,
+          () => widget.store.setCover(playlist.id, bytes),
+        );
+      }
+      return;
+    }
     if (action == 'rename') {
       final name = await playlistName(context, initial: playlist.name);
       if (name != null && mounted) {
@@ -157,7 +174,7 @@ class _PlaylistsScreenState extends State<PlaylistsScreen> {
                   itemBuilder: (_, i) {
                     final p = playlists[i];
                     return ListTile(
-                      leading: const Icon(Icons.queue_music),
+                      leading: PlaylistCover(p),
                       title: Text(p.name),
                       subtitle: Text(
                         p.entries.length == 1
@@ -169,15 +186,21 @@ class _PlaylistsScreenState extends State<PlaylistsScreen> {
                         tooltip: 'Opzioni playlist',
                         onSelected: (action) => _menu(p, action),
                         itemBuilder:
-                            (_) => const [
-                              PopupMenuItem(
-                                value: 'rename',
-                                child: Text('Rinomina'),
+                            (_) => [
+                              const PopupMenuItem(
+                                value: 'cover',
+                                child: Text('Scegli copertina'),
                               ),
-                              PopupMenuItem(
-                                value: 'delete',
-                                child: Text('Elimina'),
-                              ),
+                              if (!p.isFavorites)
+                                const PopupMenuItem(
+                                  value: 'rename',
+                                  child: Text('Rinomina'),
+                                ),
+                              if (!p.isFavorites)
+                                const PopupMenuItem(
+                                  value: 'delete',
+                                  child: Text('Elimina'),
+                                ),
                             ],
                       ),
                     );
@@ -194,6 +217,7 @@ class _PlaylistsScreenState extends State<PlaylistsScreen> {
         entries.map((e) => library.find(e.songId)).whereType<Song>().toList();
     return ReorderableListView.builder(
       itemCount: entries.length,
+      buildDefaultDragHandles: false,
       onReorder: (from, to) {
         final before = to == entries.length ? null : entries[to].songId;
         editPlaylist(
@@ -204,21 +228,27 @@ class _PlaylistsScreenState extends State<PlaylistsScreen> {
       itemBuilder: (_, i) {
         final entry = entries[i];
         final song = library.find(entry.songId);
-        return ListTile(
+        return SwipeRemove(
           key: ValueKey(entry.songId),
-          leading: Artwork(song?.cover),
-          title: Text(song?.title ?? entry.title),
-          subtitle: Text(song?.artist ?? '${entry.artist} · Non disponibile'),
-          selected: song != null && song.id == widget.currentId,
-          onTap: song == null ? null : () => widget.onSelect(queue, song),
-          trailing: IconButton(
-            tooltip: 'Rimuovi dalla playlist',
-            icon: const Icon(Icons.playlist_remove),
-            onPressed:
-                () => editPlaylist(
-                  context,
-                  () => widget.store.remove(playlist.id, entry.songId),
-                ),
+          label: 'Rimuovi dalla playlist',
+          onRemove:
+              () => editPlaylist(
+                context,
+                () => widget.store.remove(playlist.id, entry.songId),
+              ),
+          child: ListTile(
+            leading: Artwork(song?.cover),
+            title: Text(song?.title ?? entry.title),
+            subtitle: Text(song?.artist ?? '${entry.artist} · Non disponibile'),
+            selected: song != null && song.id == widget.currentId,
+            onTap: song == null ? null : () => widget.onSelect(queue, song),
+            trailing: ReorderableDragStartListener(
+              index: i,
+              child: const Tooltip(
+                message: 'Trascina per riordinare',
+                child: SizedBox.square(dimension: 48, child: Icon(Icons.menu)),
+              ),
+            ),
           ),
         );
       },

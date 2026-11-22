@@ -17,14 +17,19 @@ const PlaylistSchema = CollectionSchema(
   name: r'Playlist',
   id: 4190497698144499986,
   properties: {
-    r'entries': PropertySchema(
+    r'coverBytes': PropertySchema(
       id: 0,
+      name: r'coverBytes',
+      type: IsarType.byteList,
+    ),
+    r'entries': PropertySchema(
+      id: 1,
       name: r'entries',
       type: IsarType.objectList,
       target: r'PlaylistEntry',
     ),
     r'name': PropertySchema(
-      id: 1,
+      id: 2,
       name: r'name',
       type: IsarType.string,
     )
@@ -49,6 +54,12 @@ int _playlistEstimateSize(
   Map<Type, List<int>> allOffsets,
 ) {
   var bytesCount = offsets.last;
+  {
+    final value = object.coverBytes;
+    if (value != null) {
+      bytesCount += 3 + value.length;
+    }
+  }
   bytesCount += 3 + object.entries.length * 3;
   {
     final offsets = allOffsets[PlaylistEntry]!;
@@ -68,13 +79,14 @@ void _playlistSerialize(
   List<int> offsets,
   Map<Type, List<int>> allOffsets,
 ) {
+  writer.writeByteList(offsets[0], object.coverBytes);
   writer.writeObjectList<PlaylistEntry>(
-    offsets[0],
+    offsets[1],
     allOffsets,
     PlaylistEntrySchema.serialize,
     object.entries,
   );
-  writer.writeString(offsets[1], object.name);
+  writer.writeString(offsets[2], object.name);
 }
 
 Playlist _playlistDeserialize(
@@ -84,15 +96,16 @@ Playlist _playlistDeserialize(
   Map<Type, List<int>> allOffsets,
 ) {
   final object = Playlist();
+  object.coverBytes = reader.readByteList(offsets[0]);
   object.entries = reader.readObjectList<PlaylistEntry>(
-        offsets[0],
+        offsets[1],
         PlaylistEntrySchema.deserialize,
         allOffsets,
         PlaylistEntry(),
       ) ??
       [];
   object.id = id;
-  object.name = reader.readString(offsets[1]);
+  object.name = reader.readString(offsets[2]);
   return object;
 }
 
@@ -104,6 +117,8 @@ P _playlistDeserializeProp<P>(
 ) {
   switch (propertyId) {
     case 0:
+      return (reader.readByteList(offset)) as P;
+    case 1:
       return (reader.readObjectList<PlaylistEntry>(
             offset,
             PlaylistEntrySchema.deserialize,
@@ -111,7 +126,7 @@ P _playlistDeserializeProp<P>(
             PlaylistEntry(),
           ) ??
           []) as P;
-    case 1:
+    case 2:
       return (reader.readString(offset)) as P;
     default:
       throw IsarError('Unknown property with id $propertyId');
@@ -207,6 +222,167 @@ extension PlaylistQueryWhere on QueryBuilder<Playlist, Playlist, QWhereClause> {
 
 extension PlaylistQueryFilter
     on QueryBuilder<Playlist, Playlist, QFilterCondition> {
+  QueryBuilder<Playlist, Playlist, QAfterFilterCondition> coverBytesIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'coverBytes',
+      ));
+    });
+  }
+
+  QueryBuilder<Playlist, Playlist, QAfterFilterCondition>
+      coverBytesIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'coverBytes',
+      ));
+    });
+  }
+
+  QueryBuilder<Playlist, Playlist, QAfterFilterCondition>
+      coverBytesElementEqualTo(int value) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'coverBytes',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<Playlist, Playlist, QAfterFilterCondition>
+      coverBytesElementGreaterThan(
+    int value, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'coverBytes',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<Playlist, Playlist, QAfterFilterCondition>
+      coverBytesElementLessThan(
+    int value, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'coverBytes',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<Playlist, Playlist, QAfterFilterCondition>
+      coverBytesElementBetween(
+    int lower,
+    int upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'coverBytes',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+      ));
+    });
+  }
+
+  QueryBuilder<Playlist, Playlist, QAfterFilterCondition>
+      coverBytesLengthEqualTo(int length) {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(
+        r'coverBytes',
+        length,
+        true,
+        length,
+        true,
+      );
+    });
+  }
+
+  QueryBuilder<Playlist, Playlist, QAfterFilterCondition> coverBytesIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(
+        r'coverBytes',
+        0,
+        true,
+        0,
+        true,
+      );
+    });
+  }
+
+  QueryBuilder<Playlist, Playlist, QAfterFilterCondition>
+      coverBytesIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(
+        r'coverBytes',
+        0,
+        false,
+        999999,
+        true,
+      );
+    });
+  }
+
+  QueryBuilder<Playlist, Playlist, QAfterFilterCondition>
+      coverBytesLengthLessThan(
+    int length, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(
+        r'coverBytes',
+        0,
+        true,
+        length,
+        include,
+      );
+    });
+  }
+
+  QueryBuilder<Playlist, Playlist, QAfterFilterCondition>
+      coverBytesLengthGreaterThan(
+    int length, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(
+        r'coverBytes',
+        length,
+        include,
+        999999,
+        true,
+      );
+    });
+  }
+
+  QueryBuilder<Playlist, Playlist, QAfterFilterCondition>
+      coverBytesLengthBetween(
+    int lower,
+    int upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(
+        r'coverBytes',
+        lower,
+        includeLower,
+        upper,
+        includeUpper,
+      );
+    });
+  }
+
   QueryBuilder<Playlist, Playlist, QAfterFilterCondition> entriesLengthEqualTo(
       int length) {
     return QueryBuilder.apply(this, (query) {
@@ -531,6 +707,12 @@ extension PlaylistQuerySortThenBy
 
 extension PlaylistQueryWhereDistinct
     on QueryBuilder<Playlist, Playlist, QDistinct> {
+  QueryBuilder<Playlist, Playlist, QDistinct> distinctByCoverBytes() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'coverBytes');
+    });
+  }
+
   QueryBuilder<Playlist, Playlist, QDistinct> distinctByName(
       {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
@@ -544,6 +726,12 @@ extension PlaylistQueryProperty
   QueryBuilder<Playlist, int, QQueryOperations> idProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'id');
+    });
+  }
+
+  QueryBuilder<Playlist, List<int>?, QQueryOperations> coverBytesProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'coverBytes');
     });
   }
 

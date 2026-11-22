@@ -74,6 +74,61 @@ void main() {
   });
 
   test(
+    'Preferiti protetti, identità cloud/offline e copertina persistente',
+    () async {
+      await db.close();
+      db = await Isar.open(
+        [TrackSchema, PlaylistSchema],
+        directory: dir.path,
+        inspector: false,
+      );
+      final store = Playlists(db);
+      final userId = await store.create(
+        'Brani preferiti',
+      ); // An existing user playlist may share the label.
+      await Future.wait([store.initialize(), store.initialize()]);
+      expect((await store.watch().first).length, 2);
+      final remote = cloud('1');
+      final local = Song(
+        id: 'local:9',
+        remoteId: remote.id,
+        title: remote.title,
+        artist: remote.artist,
+        album: '',
+        updatedAt: '1',
+        audio: Uri.file('/audio.mp3'),
+        cover: Uri.file('/cover.jpg'),
+      );
+      final library = PlaylistLibrary([remote], [local]);
+      await store.setFavorite(remote, library, selected: true);
+      await store.add(Playlist.favoritesId, [local], library);
+      expect(
+        (await store.watchFavorites().first)!.entries.single.songId,
+        remote.id,
+      );
+      await store.setFavorite(local, library, selected: false);
+      expect((await store.watchFavorites().first)!.entries, isEmpty);
+      await expectLater(store.delete(Playlist.favoritesId), throwsStateError);
+      await expectLater(
+        store.rename(Playlist.favoritesId, 'Altro'),
+        throwsStateError,
+      );
+      await store.setCover(userId, [1, 2, 3]);
+      await db.close();
+      db = await Isar.open(
+        [TrackSchema, PlaylistSchema],
+        directory: dir.path,
+        inspector: false,
+      );
+      expect((await db.playlists.get(userId))!.coverBytes, [1, 2, 3]);
+      expect(
+        (await db.playlists.get(Playlist.favoritesId))!.isFavorites,
+        isTrue,
+      );
+    },
+  );
+
+  test(
     'Le playlist preservano i download esistenti, identità e ordine al riavvio',
     () async {
       final first = cloud('1');

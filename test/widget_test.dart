@@ -32,10 +32,12 @@ void main() {
       );
       var attempts = 0;
       Song? playing;
+      Song? options;
       await tester.pumpWidget(
         MaterialApp(
           home: CatalogScreen(
             downloads: downloads,
+            onSongMenu: (song) => options = song,
             onOpenSettings: () {},
             load: () async {
               if (attempts++ == 0) throw StateError('offline');
@@ -56,9 +58,10 @@ void main() {
       await tester.tap(find.text('Brano'));
       expect(playing?.audio.scheme, 'https');
       expect(downloads.saved, isEmpty);
-      await tester.tap(find.byTooltip('Scarica'));
+      await tester.tap(find.byTooltip('Opzioni brano'));
       await tester.pumpAndSettle();
-      expect(downloads.saved, ['1']);
+      expect(options, song);
+      expect(downloads.saved, isEmpty);
     },
   );
 }
