@@ -249,7 +249,11 @@ class _TrackViewState extends State<_TrackView> {
           ),
         ],
         const SizedBox(height: 20),
-        _Progress(widget.playback),
+        _Progress(
+          key: ValueKey(item.id),
+          playback: widget.playback,
+          songId: item.id,
+        ),
         const SizedBox(height: 12),
         IconButtonTheme(
           data: IconButtonThemeData(
@@ -262,27 +266,48 @@ class _TrackViewState extends State<_TrackView> {
   }
 }
 
-class _Progress extends StatelessWidget {
-  const _Progress(this.playback);
+class _Progress extends StatefulWidget {
+  const _Progress({super.key, required this.playback, required this.songId});
   final Playback playback;
+  final String songId;
+
+  @override
+  State<_Progress> createState() => _ProgressState();
+}
+
+class _ProgressState extends State<_Progress> {
+  Duration? _preview;
+  int _gesture = 0;
+
+  void _previewPosition(double ms) =>
+      setState(() => _preview = Duration(milliseconds: ms.round()));
+
+  Future<void> _commitPosition(double ms) async {
+    final gesture = _gesture;
+    final target = Duration(milliseconds: ms.round());
+    setState(() => _preview = target);
+    try {
+      await widget.playback.seek(target, songId: widget.songId);
+    } finally {
+      if (mounted && gesture == _gesture) setState(() => _preview = null);
+    }
+  }
 
   String _time(Duration value) =>
       '${value.inMinutes}:${value.inSeconds.remainder(60).toString().padLeft(2, '0')}';
 
   @override
   Widget build(BuildContext context) => StreamBuilder<Duration?>(
-    stream: playback.player.durationStream,
-    initialData: playback.player.duration,
+    stream: widget.playback.player.durationStream,
+    initialData: widget.playback.player.duration,
     builder: (_, total) {
       final duration = total.data ?? Duration.zero;
       return StreamBuilder<Duration>(
-        stream: playback.player.positionStream,
-        initialData: playback.player.position,
-        builder: (_, elapsed) {
-          final ms = (elapsed.data ?? Duration.zero).inMilliseconds.clamp(
-            0,
-            duration.inMilliseconds,
-          );
+        stream: widget.playback.player.positionStream,
+        builder: (_, __) {
+          final ms = (_preview ?? widget.playback.player.position)
+              .inMilliseconds
+              .clamp(0, duration.inMilliseconds);
           return Column(
             children: [
               Slider(
@@ -290,11 +315,9 @@ class _Progress extends StatelessWidget {
                 value: ms.toDouble(),
                 activeColor: Colors.white,
                 inactiveColor: Colors.white30,
-                onChanged:
-                    duration == Duration.zero
-                        ? null
-                        : (v) =>
-                            playback.seek(Duration(milliseconds: v.round())),
+                onChangeStart: (_) => _gesture++,
+                onChanged: duration == Duration.zero ? null : _previewPosition,
+                onChangeEnd: duration == Duration.zero ? null : _commitPosition,
               ),
               DefaultTextStyle(
                 style: Theme.of(

@@ -262,7 +262,13 @@ class Playback extends BaseAudioHandler with SeekHandler {
     }
   });
   @override
-  Future<void> seek(Duration position) => _command(() => player.seek(position));
+  Future<void> seek(Duration position, {String? songId}) => _command(() async {
+    if (songId != null) {
+      final item = player.sequenceState?.currentSource?.tag;
+      if (item is! MediaItem || item.id != songId) return;
+    }
+    await player.seek(position);
+  });
 
   Future<void> dispose() async {
     for (final subscription in _subscriptions) {

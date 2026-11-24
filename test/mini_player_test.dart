@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:audio_service/audio_service.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -92,13 +94,31 @@ class _Controls extends Fake implements Playback {
   Future<void> toggle() async {}
 
   @override
-  Future<void> seek(Duration position) => player.seek(position);
+  Future<void> seek(Duration position, {String? songId}) async {
+    seeks.add(position);
+    await seekGate?.future;
+    await player.seek(position);
+  }
+
+  final seeks = <Duration>[];
+  Completer<void>? seekGate;
 
   @override
   Future<void> skipToNext() async {}
 }
 
 void main() {
+  test('Un seek rilasciato sul vecchio brano non sposta il nuovo', () async {
+    final audio = _Player();
+    final playback = Playback(audioPlayer: audio);
+    addTearDown(playback.dispose);
+    const target = Duration(minutes: 2);
+    await playback.seek(target, songId: 'brano precedente');
+    expect(audio.position, const Duration(seconds: 3));
+    await playback.seek(target, songId: '1');
+    expect(audio.position, target);
+  });
+
   test(
     'Precedente ricomincia da tre secondi o se manca una traccia precedente',
     () async {
@@ -181,10 +201,34 @@ void main() {
 
     await open();
     final slider = find.byType(Slider);
-    await tester.drag(slider, const Offset(60, 0));
+    final firstSeek = playback.seekGate = Completer<void>();
+    final drag = await tester.startGesture(tester.getCenter(slider));
+    await drag.moveBy(const Offset(28, 0));
+    await tester.pump();
+    final midway = tester.widget<Slider>(slider).value;
+    await drag.moveBy(const Offset(28, 0));
+    await tester.pump();
+    final target = tester.widget<Slider>(slider).value;
+    expect(target, greaterThan(midway));
+    expect(playback.seeks, isEmpty);
+    await drag.up();
+    await tester.pump();
+    expect(playback.seeks, [Duration(milliseconds: target.round())]);
+    expect(tester.widget<Slider>(slider).value, target);
+
+    // Finishing the first seek must not reset a second drag in progress.
+    final nextDrag = await tester.startGesture(tester.getCenter(slider));
+    await nextDrag.moveBy(const Offset(-42, 0));
+    await tester.pump();
+    final secondTarget = tester.widget<Slider>(slider).value;
+    firstSeek.complete();
+    await tester.pump();
+    expect(tester.widget<Slider>(slider).value, secondTarget);
+    await nextDrag.up();
     await tester.pumpAndSettle();
     final position = playback.player.position;
-    expect(position, greaterThan(const Duration(seconds: 3)));
+    expect(playback.seeks.length, 2);
+    expect(position.inMilliseconds, secondTarget.round());
     final cover = find.byType(Artwork);
     final origin = tester.getCenter(cover);
     final gesture = await tester.startGesture(origin);
